@@ -14,3 +14,6 @@ the typical bash scripting standards:
 - for evaluation [[  ]] instead of [  ]
 - for substitution use $() instead of backticking ``
 - restic - backups done not left but righty-ish
+- msmtp - at least a maintained utility for emailing
+- hg - mercurial versioning
+- ipset - nice utility for you know... better iptables management
