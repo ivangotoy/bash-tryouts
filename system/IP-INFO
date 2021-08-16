@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# I usually execute this tiny script automatically on shell login.
+# Its idea is to try and find LAN and WAN ips of the machine I've just logged in.
+# We need to have these available in out system:
+# - zsh 
+# - ip
+# - rg
+# Let's begin with just one empty line for starters.
+
+printf "\n"
+
+# Local IP 
+
+printf "MY LOCAL IP IS: "; ip a show | rg 'inet ' | rg -v host |  cut -d ' ' -f 6 |  rev | cut -c 4- | rev
+
+# Another empty line for much better readability.
+
+printf "\n"
+
+# Public IP
+
+printf "MY PUBLIC IP IS: "; curl --tlsv1.3 --silent --compressed -4 --dns-ipv4-addr 192.168.1.1 --http2 --parallel --parallel-immediate --sasl-ir checkip.amazonaws.com
+
+# The last empty line for the best placement of data on the terminal.
+
+printf "\n"
+
+exit 0
