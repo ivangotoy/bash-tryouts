@@ -1,0 +1,34 @@
+#!/usr/bin/env zsh
+#
+# Ivan Angelov ivangotoy@gmail.com
+# https://digtvbg.com/
+#
+# A small crontab executed by *superuser* script for
+# updating my WAF ModSecurity rulesets on a regular basis.
+# Execute it once a day or every other day is fine just fine.
+# A Seth-and-Forgeth solution.
+
+export LC_ALL=C
+export LANG=C
+
+# Enter desired git repo folder:
+
+cd /etc/nginx/modsec/coreruleset/
+
+git fetch
+HEADHASH="$(git rev-parse HEAD)"
+UPSTREAMHASH="$(git rev-parse v3.4/dev@{upstream})"
+
+# If updates are detected - git pull and reload webserver
+# Add some human readble strings to a log file of your choice.
+
+if [ "$HEADHASH" != "$UPSTREAMHASH" ];
+then
+git pull &> /dev/null
+sync &> /dev/null
+systemctl reload nginx &> /dev/null
+printf "$(date) Corerulset updated from git! GG!!\n\n" >> /home/$USER/alerter/coreruleset-updates
+else
+printf "$(date) Just another CRONJOB run - no updates!\n\n" >> /home/$USER/alerter/coreruleset-updates
+fi
+exit 0
