@@ -8,13 +8,14 @@
 # - ssh paswordless login to openwrt router works correctly for the account building OpenWrt.
 # - wget; zsh; openwrt git source tree in ~/Downloads/openwrt - have some common sense bout those.
 # - variables defined but not used many times - future ideas for extending the script will reuse them for sure.
-# - variable defined in CAPS which are not system vars are a sign of bad taste or good times with guns.
+# - variables defined in CAPS which are not system vars are a sign of bad taste or good times with guns.
 
 # Some timing details ( for my personal use - benchmarking various cpus and setups, irrelevant for fw updates)
 
 START=$(date +%s)
 FIRMWARE="/home/$USER/Downloads/openwrt/bin/targets/x86/64/openwrt-x86-64-generic-ext4-combined.img"
 TMP="router:/tmp/"
+OPENWRT="/home/$USER/Downloads/openwrt"
 if wget -q --tries=10 --timeout=1 --spider https://google.bg;
 then
 printf "$(date +"%Hh:%Mm:%Ss") There is Internet!\n\n"
@@ -34,7 +35,9 @@ printf "$(date +"%Hh:%Mm:%Ss") Cleaning previous build...\n\n"
 make clean &>/dev/null
 printf "$(date +"%Hh:%Mm:%Ss") Building firmware. This will take some time...\n\n"
 
-# Runs make with 20 jobs - adjust 20 to real cpu threads.
+# Runs make with 20 jobs - adjust 20 to the real number of cpu threads.
+
+printf "Bulding now, this will take some time. And cpu cycles... and ram."
 
 make -j20 &> /dev/null
 sync &> /dev/null
