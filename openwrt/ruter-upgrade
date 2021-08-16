@@ -1,0 +1,69 @@
+#!/usr/bin/env zsh
+
+# This is a hastily written script that "might" update x86 openwrt images
+#
+# Written by Ivan Angelov ivangotoy@gmail.com
+#
+# Assumptions:
+# - ssh paswordless login to openwrt router works correctly for the account building OpenWrt.
+# - wget; zsh; openwrt git source tree in ~/Downloads/openwrt - have some common sense bout those.
+# - variables defined but not used many times - future ideas for extending the script will reuse them for sure.
+# - variable defined in CAPS which are not system vars are a sign of bad taste or good times with guns.
+
+# Some timing details ( for my personal use - benchmarking various cpus and setups, irrelevant for fw updates)
+
+START=$(date +%s)
+FIRMWARE="/home/$USER/Downloads/openwrt/bin/targets/x86/64/openwrt-x86-64-generic-ext4-combined.img"
+TMP="router:/tmp/"
+if wget -q --tries=10 --timeout=1 --spider https://google.bg;
+then
+printf "$(date +"%Hh:%Mm:%Ss") There is Internet!\n\n"
+else
+printf "$(date +"%Hh:%Mm:%Ss") No internet! Cannot continue!\n"
+exit 1
+fi
+
+# UPDATE, CLEAN FIRMWARE AND BUILD A NEW ONE:
+
+cd $OPENWRT
+printf "$(date +"%Hh:%Mm:%Ss") Updating sources...\n\n"
+git pull &>/dev/null
+./scripts/feeds update -a &>/dev/null
+./scripts/feeds install -a &>/dev/null
+printf "$(date +"%Hh:%Mm:%Ss") Cleaning previous build...\n\n"
+make clean &>/dev/null
+printf "$(date +"%Hh:%Mm:%Ss") Building firmware. This will take some time...\n\n"
+
+# Runs make with 20 jobs - adjust 20 to real cpu threads.
+
+make -j20 &> /dev/null
+sync &> /dev/null
+printf "$(date +"%Hh:%Mm:%Ss") Done building, let's flash it.\n\n"
+
+# CHECK FOR THE NEWLY BUILT FIRMWARE FILE:
+
+if [[ ! -f "$FIRMWARE" ]]; then
+printf "$(date +"%Hh:%Mm:%Ss") NO FIRMWARE FILE FOUND - BUILD ERROR!\n\n"
+exit 1
+fi
+
+scp "$FIRMWARE" "$TMP" &> /dev/null
+ssh router 'sysupgrade -q /tmp/openwrt-x86-64-generic-ext4-combined.img' &> /dev/null
+
+sleep 15
+
+if wget -q --tries=20 --timeout=1 --spider https://google.bg;
+then
+printf "$(date +"%Hh:%Mm:%Ss") Router is back online!\n\n"
+else
+sleep 5
+printf "$(date +"%Hh:%Mm:%Ss") Check your internet connection!\n\n"
+fi
+
+END=$(date +%s)
+RUNTIME=$((END-START))
+printf "$(date +"%Hh:%Mm:%Ss") Upgrade took: $RUNTIME seconds\n\n"
+printf "Which means:\n\n"
+printf "$RUNTIME/60\n" | bc | tr -d '\n' ; printf " minutes\n"
+
+exit 0
