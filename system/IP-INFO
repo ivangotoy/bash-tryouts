@@ -1,7 +1,11 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
+#
+# Ivan Angelov ivangotoy@gmail.com
+# https://digtvbg.com/
+#
 # I usually execute this tiny script automatically on shell login.
 # Its idea is to try and find LAN and WAN ips of the machine I've just logged in.
-# We need to have these available in out system:
+# We need to have these available in our system:
 # - zsh 
 # - ip
 # - rg

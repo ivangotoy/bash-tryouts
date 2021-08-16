@@ -1,9 +1,9 @@
 #!/usr/bin/env zsh
-
+#
+# Ivan Angelov ivangotoy@gmail.com
+# https://digtvbg.com/
+#
 # This is a hastily written script that "might" update x86 openwrt images
-#
-# Written by Ivan Angelov ivangotoy@gmail.com
-#
 # Assumptions:
 # - ssh paswordless login to openwrt router works correctly for the account building OpenWrt.
 # - wget; zsh; openwrt git source tree in ~/Downloads/openwrt - have some common sense bout those.
