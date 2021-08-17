@@ -1,0 +1,29 @@
+If you happen to have dnscrypt proxy 2 running - that's great.
+
+https://github.com/DNSCrypt/dnscrypt-proxy
+
+If you don't have it you can learn how to obtain it from here:
+
+https://github.com/DNSCrypt/dnscrypt-proxy/wiki
+
+Encrypting your dns activity on a single device or your router taking care of LAN is one thing
+
+but using dnscrypt 2 as ad blocker is so much more fun. Here how to do it:
+
+- in dnscrypt-proxy.toml make sure you configure:
+
+
+[blocked_names]
+
+  ## Path to the file of blocking rules (absolute, or relative to the same directory as the config file)
+
+blocked_names_file = 'blocked-names.txt'
+
+- in system crontab add a similar entry to the one below.
+
+@daily curl -s https://dblw.oisd.nl/ -o /etc/dnscrypt-proxy2/blocked-names.txt && sync && sleep 5 && /etc/init.d/dnscrypt-proxy restart
+
+
+N.B. Make sure /etc/dnscrypt-proxy2/blocked-names.txt in cron is adjusted to the correct location on your system.
+
+That's all folks :)
