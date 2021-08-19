@@ -1,0 +1,23 @@
+#!/usr/bin/env zsh
+#
+# Ivan Angelov ivangotoy@gmail.com
+# https://digtvbg.com/
+#
+# Tooling used: zsh, curl, jq, and column
+#
+# This script does these things:
+#
+# 1. Sends a curl request to the nordvpn api server asking for:
+# - servers using only: wireguard vpn protocol, from Bulgaria, output limited to 16 intances, sorted by load.
+#
+# - Prints the output on-screen in a bit columnized way
+
+export LC_ALL=C
+export LANG=C
+
+red=$(tput setaf 1)
+green=$(tput setaf 2)
+normal=$(tput sgr0)
+
+printf "%0s\n ${red}HOSTNAME: IP-ADDRESS: PUBLIC-KEY: LOAD:${normal}  %0s\n %0s\n "${green}"$(curl --tlsv1.3 --silent --compressed -4 --dns-ipv4-addr 192.168.1.1 --http2 --parallel --parallel-immediate --sasl-ir "https://api.nordvpn.com/v1/servers?filters\[servers_technologies\]\[identifier\]=wireguard_udp&filters\[country_id\]=202&limit=16" | jq --raw-output --slurp ' .[] | sort_by(.load) | limit(16;.[]) | [.hostname, .station, (.technologies|.[].metadata|.[].value), .load] | "\(.[0])  \(.[1]) \(.[2]) \(.[3])"')"${normal}"" | column -tL
+printf "\nPORT NUMBER IS ALWAYS: 51820\n"
