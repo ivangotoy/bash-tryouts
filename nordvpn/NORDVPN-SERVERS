@@ -31,5 +31,5 @@ printf "HERE ARE THE WIREGUARD SERVERS FROM COUNTRY ID "${REPLY}" SORTED BY LOAD
 
 LIST="$(curl  --tlsv1.3 --silent --compressed -4 --dns-ipv4-addr 192.168.1.1 --http2 --parallel --parallel-immediate --sasl-ir "https://api.nordvpn.com/v1/servers?filters\[servers_technologies\]\[identifier\]=wireguard_udp&filters\[country_id\]="$REPLY"&limit=20" | jq --raw-output --slurp ' .[] | sort_by(.load) | limit(20;.[]) | [.hostname, .station, (.technologies|.[].metadata|.[].value), .load] | "\(.[0])  \(.[1])  \(.[2])  \(.[3])"')"
 
-printf "HOST IP PUBKEY LOAD\n "$LIST"" | column -t
+printf "HOST IP PUBKEY LOAD\n "$LIST"" | column -tW 4
 printf "PORT NUMBER IS ALWAYS: 51820\n"
