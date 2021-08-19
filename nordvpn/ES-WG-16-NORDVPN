@@ -8,7 +8,7 @@
 # This script does these things:
 #
 # 1. Sends a curl request to the nordvpn api server asking for:
-# - servers using only: wireguard vpn protocol, from Bulgaria, output limited to 16 intances, sorted by load.
+# - servers using only: wireguard vpn protocol, from Spain, output limited to 16 intances, sorted by load.
 #
 # - Prints the output on-screen in a bit columnized way
 

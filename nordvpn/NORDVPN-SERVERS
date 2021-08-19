@@ -13,7 +13,7 @@
 #
 # Pulls valuable details for the country represented by the selected number.
 #
-# Any anonymous aliexpress trader would not care if the number was valide so do we :)
+# Any anonymous aliexpress trader would not care if the number was valid so do we :)
 
 export LC_ALL=C
 export LANG=C
