@@ -1,6 +1,8 @@
 # bash-tryouts
 Learning bash as a pre-alpha quality hobby
 
+Results oriented mindset. Tooling and skills just help for delivery of results.
+
 Some tooling and scripting tricks someone might find a bit awkward for
 the typical bash scripting standards:
 
