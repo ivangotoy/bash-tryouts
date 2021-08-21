@@ -15,7 +15,7 @@ printf "\n"
 
 # Local IP 
 
-printf "MY LOCAL IP IS: "; ip a show | rg 'inet ' | rg -v host |  cut -d ' ' -f 6 |  rev | cut -c 4- | rev
+printf "MY LOCAL IP IS: "; ip -c a show | rg 'inet ' | rg -v host |  cut -d ' ' -f 6 |  rev | cut -c 4- | rev
 
 # Another empty line for much better readability.
 
