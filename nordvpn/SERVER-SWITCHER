@@ -1,0 +1,58 @@
+#!/usr/bin/env zsh
+#
+# Ivan Angelov ivangotoy@gmail.com
+# https://digtvbg.com/
+#
+# Tooling used: zsh, curl, jq, sed, rg
+#
+# Wireguard should be properly configured with a valid/paid account pubkey.
+#
+# /etc/wireguard/bg.conf is where this info resides in our case
+# 
+# so that wg-quick@bg is a valid string - read below
+#
+export LC_ALL=C
+export LANG=C
+
+# CHECK ROOT ACCESS:
+
+if [[ "$EUID" -ne 0 ]]; then
+printf "This script must be run as root!\n" 
+exit 1
+fi
+
+# DEFINE 3 MAIN VARIABLES:
+# var 1 $file is the config file to check/edit and play with:
+
+file="/etc/wireguard/bg.conf"
+
+if [[ ! -f "$file" ]];
+then
+printf "Config file "$file" could not be found, please investigate!\n"
+exit 1
+fi
+	
+# var 2 $old is the current NORDVPN server notation e.g. "bg50" used by the system:
+
+old="$(rg -oN "bg[3-5][0-9]" "$file")"
+
+# var 3 $new is the least loaded NORDVPN server in Bulgaria (country id 33) - jq magic
+
+new="$(curl  --tlsv1.3 --silent --compressed -4 --dns-ipv4-addr 192.168.1.1 --http2 --parallel --parallel-immediate --sasl-ir "https://api.nordvpn.com/v1/servers?filters\[servers_technologies\]\[identifier\]=wireguard_udp&filters\[country_id\]=33&limit=16" | jq --raw-output --slurp ' .[] | sort_by(.load) | limit(16;.[]) | [.hostname, .load] | "\(.[0])  \(.[1]) "' | head -1 | cut -d "." -f 1)"
+
+# SHOW CURRENT EXTERNAL IP:
+
+printf "CURRENT IP IS: "$(curl  --tlsv1.3 --silent --compressed -4 --dns-ipv4-addr 192.168.1.1 --http2 --parallel --parallel-immediate --sasl-ir checkip.amazonaws.com)"\n"
+
+# NOW LET'S CHECK IF THE CURRENT SERVER IS STILL THE LEAST LOADED IN THE GROUP.
+# IF THERE IS A LESS LOADED (BETTER) SERVER - USE IT, ELSE DO NOTHING.
+
+if [[ ! -z "$old" ]] && [[ "${#old}" == 4 ]] && [[ "$old" != "$new" ]];
+then
+sed -i "s/"$old"/"$new"/g" "$file"
+printf "Changing server "$old" with the less loaded server "$new".\n"
+systemctl restart wg-quick@bg
+else
+printf "Server "$old" is still the best in the group no changes will be made.\n"
+fi
+printf "NEW IP IS: "$(curl  --tlsv1.3 --silent --compressed -4 --dns-ipv4-addr 192.168.1.1 --http2 --parallel --parallel-immediate --sasl-ir checkip.amazonaws.com)"\n"
