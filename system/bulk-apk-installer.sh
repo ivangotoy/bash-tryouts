@@ -13,9 +13,13 @@
 #
 # - execute the script from the directory with apk files.
 
-for APK in *.apk
+if [[ -z "$(adb version)" ]]; then
+	printf "No ADB (get it from google platform tools) available in the system, please, act accordingly. Now we abort that mission.\n"
+    exit 1
+fi
+
+for APK in $(find . -type f -name "*.APK" -o -name "*.apk" -printf '%f\n')
 do
 adb install "$APK"
 wait
 done
-exit 0
