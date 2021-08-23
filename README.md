@@ -1,4 +1,7 @@
 # bash-tryouts
+
+POWERED BY ETHIOPIA YIRGACHEFFE SPECIALTY COFFEE SCA 84 - PROCESS HONEY HEIRLOOM
+
 Learning bash as a pre-alpha quality hobby
 
 Results oriented mindset. Tooling and skills just help for delivery of results.
