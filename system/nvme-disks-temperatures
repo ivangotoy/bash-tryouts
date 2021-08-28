@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+#
+# Ivan Angelov ivangotoy@gmail.com
+# https://digtvbg.com/
+#
+# For this script to work we need:
+#
+# root access && bash && nvme-cli && some actual nvme disk(s) attached || exit 1
+#
+
+export LC_ALL=C
+export LANG=C
+
+# Let's try and check if come bare minimum is available:
+
+if [[ "$EUID" -ne 0 ]]; then
+printf "This script must be run as root!\nE.G. sudo $0\n"
+exit 1
+fi
+
+shopt -s extglob
+
+disks="/dev/nvme+([0-9])"
+for disk in $disks; do
+if [[ ! -c $disk ]]; then
+printf "No nvme disks available in the system.\nGo get them some first.\n"
+exit 1
+fi
+done
+
+if ! type nvme &> /dev/null; then
+printf "nvme-cli not installed - try installing it.\n"
+exit 1
+fi
+
+# Let's get the job done:
+
+for nvmes in /dev/nvme+([0-9]);
+do
+printf "\n"
+printf ">>>>> $nvmes TEMPS: DEGREES\nFLASH MEMORY:"
+printf '%s\n' "$(sudo nvme smart-log $nvmes)" | rg 'temp' | cut -d ":" -f 2
+printf "ASIC CHIP:"
+printf '%s\n' "$(sudo nvme smart-log $nvmes)" | rg "or 1" | cut -d ":" -f 2
+done
