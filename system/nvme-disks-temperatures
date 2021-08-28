@@ -5,13 +5,12 @@
 #
 # For this script to work we need:
 #
-# root access && bash && nvme-cli && some actual nvme disk(s) attached || exit 1
-#
+# root access && bash && ripgrep && column && nvme-cli && some actual nvme disk(s) attached || exit 1
 
 export LC_ALL=C
 export LANG=C
 
-# Let's try and check if come bare minimum is available:
+# Let's try and check if the bare minimum is available:
 
 if [[ "$EUID" -ne 0 ]]; then
 printf "This script must be run as root!\nE.G. sudo $0\n"
@@ -33,8 +32,19 @@ printf "nvme-cli not installed - try installing it.\n"
 exit 1
 fi
 
+if ! type rg &> /dev/null; then
+printf "ripgrep not installed - go make a prayer habibti.\n"
+exit 1
+fi
+
+if ! type column &> /dev/null; then
+printf "column not installed - go figure.\n"
+exit 1
+fi
+
 # Let's get the job done:
 
+nvme_temps () {
 for nvmes in /dev/nvme+([0-9]);
 do
 printf "\n"
@@ -43,3 +53,5 @@ printf '%s\n' "$(sudo nvme smart-log $nvmes)" | rg 'temp' | cut -d ":" -f 2
 printf "ASIC CHIP:"
 printf '%s\n' "$(sudo nvme smart-log $nvmes)" | rg "or 1" | cut -d ":" -f 2
 done
+}
+nvme_temps | column -t -s ":"
