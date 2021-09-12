@@ -5,9 +5,9 @@
 #
 # This is a bash script that will:
 #
-# 1. Check some basic software availability
+# Check some basic software availability
 #
-# 2. Setup backup solution based on restic
+# Setup backup solution based on restic
 #
 # - user is responsible for setting up a restic backup repo directory:
 #
@@ -15,18 +15,19 @@
 #
 # Feel free to use google-drive-ocamlfuse to mount 
 #
-# your google drive folder in /home/$USER/BACKUP for trully online backups done right :)
-
-
+# your google drive folder in /home/$USER/BACKUP for truly online backups done right :)
+#
+# You can get restic from here for example: https://beta.restic.net/?sort=time&order=desc
+#
 # Define start time:
 start="$(date +%s)"
-
-# 2. Mount your Gdrive in a local directory:
+#
+# Mount your Gdrive in a local directory:
 # 
 # Example: 
 #
 # ocamlfuse etc.
-
+#
 # Configure restic:
 #
 # restic-includes.conf is a list of full paths of directories for backup
@@ -43,9 +44,9 @@ excludes="/home/$USER/restic-excludes.conf"
 #
 # make sure restic-pass is an existing filename containing the restic password for reading/decripting the backup - chmod it accordingly 400
 
-if [[ ! -f "/home/$USER/BACKUP" ]] || [[ ! -f "/home/$USER/restic-pass" ]];
+if [[ ! -d "/home/$USER/BACKUP" ]] || [[ ! -f "/home/$USER/restic-pass" ]];
 then
-printf "Restic BACKUP dir or restic-pass problem.\n"
+printf "Restic BACKUP dir or restic-pass problem. Check a couple of lines above in this script for hints.\n"
 exit 1
 fi
 
@@ -53,7 +54,9 @@ cmd() {
 $(which restic) -r /home/$USER/BACKUP -p /home/$USER/restic-pass
 }
 
-# Print timing information plus end-user readable messages and do the backup:
+# Important custom editing of the script with meaningful effects should be above this line I believe.
+#
+# Print timing information plus end-user readable messages and do the actual backup:
 
 now1="$(date +'%d %B %Y %Hh:%Mm:%Ss')"
 printf "#### "$now1" - BACKUP STARTED!\n"
@@ -64,15 +67,15 @@ cmd backup --files-from="$includes" --exclude-file="$excludes" >/dev/null 2>&1
 now3="$(date +'%d %B %Y %Hh:%Mm:%Ss')"
 printf ""$now3" - BACKUP COMPLETE!\n"                         
 cmd forget --keep-last 10 --prune >/dev/null 2>&1
-now4=$(date +'%d %B %Y %Hh:%Mm:%Ss')
-printf "$now4 - OLDEST SNAPSHOT DELETED!\n"
+now4="$(date +'%d %B %Y %Hh:%Mm:%Ss')"
+printf ""$now4" - OLDEST SNAPSHOT DELETED!\n"
 cmd unlock >/dev/null 2>&1
-now5=$(date +'%d %B %Y %Hh:%Mm:%Ss')
-printf "$now5 - REPO UNLOCKED FOR NEXT BACKUP!\n"
-end=$(date +%s)
-runtime=$((end-start))
-minutes=$(($runtime / 60))
-printf "TOTAL TIME TAKEN: $runtime seconds!\n"
-printf "WHICH IS: $minutes minutes!\n"
-now6=$(date +'%d %B %Y %Hh:%Mm:%Ss')
-printf "#### $now6 - BACKUP ENDED!\n"
+now5="$(date +'%d %B %Y %Hh:%Mm:%Ss')"
+printf ""$now5" - REPO UNLOCKED FOR THE NEXT BACKUP!\n"
+end="$(date +%s)"
+runtime="$((end-start))"
+minutes="$(($runtime / 60))"
+printf "TOTAL TIME TAKEN: "$runtime" seconds!\n"
+printf "WHICH IS: "$minutes" minutes!\n"
+now6="$(date +'%d %B %Y %Hh:%Mm:%Ss')"
+printf "#### "$now6" - BACKUP ENDED!\n"
