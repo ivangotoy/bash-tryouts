@@ -1,0 +1,140 @@
+#!/usr/bin/env zsh
+#
+# Requirements:
+#
+# google-drive-ocamlfuse
+#
+# fusermount3
+#
+# restic
+#
+# Restic repository on google drive, mounted locally
+#
+# Create restic repository example:
+# 
+# 1. mkdir /home/$USER/restic-backup 
+#
+# 2. execute in terminal "google-drive-ocamlfuse" to authorize it with google drive via web browser
+#
+# 3. mount google drive locally: google-drive-ocamlfuse -label YOUNAMEIT /home/$USER/restic-backup
+#
+# 4. create subdirectory in google drive for restic repository while gdrive mounted locally: mkdir /home/$USER/restic-backup/repo
+#
+# 4. Initialise a restic repo in Google drive mount repo folder: restic init --compression max --cleanup-cache --repository-version latest -r /home/$USER/restic-backup/repo
+#
+# 5. /home/$USER/restic-backup/repo will contain the backups - encrypted in your google drive.
+#
+# Check for tools:
+
+if ! command -v google-drive-ocamlfuse &> /dev/null
+then
+	printf "google-drive-ocamlfuse not found!!! Visit https://github.com/astrada/google-drive-ocamlfuse/wiki/Installation\n"
+	exit 1
+fi
+
+if ! command -v fusermount3 &> /dev/null
+then
+        printf "fusermount3 not found!!! package fuse3 ubuntu/redhat/arch; Google for: install fuse3 linux\n"
+        exit 1
+fi
+
+if ! command -v restic &> /dev/null
+then
+        printf "restic not found!!! Visit https://restic.readthedocs.io/en/latest/020_installation.html\n"
+        exit 1
+fi
+
+start=$(date +%s)
+export RESTIC_CACHE_DIR="/home/$USER/.cache/restic"
+# Don't encrypt like everyone's watching, host is secure - ~/.restic-password contains the repo password in plain text.
+export RESTIC_PASSWORD_FILE=/home/$USER/.restic-password
+mount="/home/$USER/GoogleDriveBackup"
+export RESTIC_REPOSITORY="${mount}/ryzen-backup"
+includes="/home/$USER/restic-includes.conf"
+excludes="/home/$USER/restic-excludes.conf"
+
+exe="$(command -v restic) --cleanup-cache --compression max -q" 
+fuserm="$(command -v fusermount3)"
+gdrive="$(command -v google-drive-ocamlfuse)"
+
+
+# Alphabet mafia engaged:
+lightred='\033[1;31m'
+lightgreen='\033[1;32m'
+yellow='\033[1;33m'
+lightcyan='\033[1;36m'
+lightblue='\033[1;34m'
+red='\033[0;31m'
+green='\033[0;32m'
+cyan='\033[0;36m'
+brown='\033[0;33m'
+purple='\033[0;35m'
+nocolor='\033[0m'
+
+now0=$(date +'%d %B %Y %Hh:%Mm:%Ss')
+printf "\n#### $now0 - ${lightred}BACKUP STARTED${nocolor}!\n####\n"
+now1=$(date +'%d %B %Y %Hh:%Mm:%Ss')
+
+if [[ ! -d "$RESTIC_CACHE_DIR" ]];
+then
+        mkdir -p "$RESTIC_CACHE_DIR"
+fi
+
+if [[ ! -d "$mount" ]];
+then
+        printf "Holla benchode, mount directory not found on line 51 of this script!!!\n"
+        exit 1
+fi
+
+if mount | grep "$mount" > /dev/null; then
+	"$fuserm" -u "$mount" &> /dev/null
+	printf "#### $now1 - ${lightgreen}REPO DIRECTORY MOUNT${nocolor}!\n####\n"
+	"$gdrive" -label ivangotoy84 "$mount" &> /dev/null
+else
+	printf "#### $now1 - ${lightgreen}REPO DIRECTORY MOUNT${nocolor}!\n####\n"
+	"$gdrive" -label ivangotoy84 "$mount" &> /dev/null
+fi
+
+if [[ ! -d "$RESTIC_REPOSITORY" ]];
+then
+        printf "Holla benchode, open script and use correct directory path in RESTIC_REPOSITORY on line 46!!!\n"
+        exit 1
+fi
+
+# Check if folder is actually INITIALISED restic repo or you sucked way too many donkey boners last night:
+
+if [[ ! -f "${RESTIC_REPOSITORY}/config" ]]
+then
+    printf "Folder not a restic repo, please: head -25 BACKUP-SCRIPT | tail -15 \n"
+    exit 1
+fi
+
+eval "$exe unlock &> /dev/null"
+now2=$(date +'%d %B %Y %Hh:%Mm:%Ss')
+printf "#### $now2 - ${yellow}UNLOCK COMPLETE${nocolor}!\n####\n"
+eval "$exe backup --files-from="$includes" --exclude-file="$excludes" &> /dev/null"
+now3=$(date +'%d %B %Y %Hh:%Mm:%Ss')
+printf "#### $now3 - ${lightcyan}BACKUP COMPLETE${nocolor}!\n####\n"                 
+eval "$exe forget --keep-last 10 --prune &> /dev/null"
+now4=$(date +'%d %B %Y %Hh:%Mm:%Ss')
+printf "#### $now4 - ${lightblue}OLDEST SNAPSHOT DELETED${nocolor}!\n####\n"
+eval "$exe unlock &> /dev/null"
+now5=$(date +'%d %B %Y %Hh:%Mm:%Ss')
+printf "#### $now5 - ${red}REPO UNLOCKED FOR NEXT BACKUP${nocolor}!\n####\n"
+"$fuserm" -u "$mount" &> /dev/null
+now6=$(date +'%d %B %Y %Hh:%Mm:%Ss')
+printf "#### $now6 - ${green}REPO GOOGLE DRIVE DIR UNMOUNTED${nocolor}!\n####\n"
+# Check if SCROOGLE DRIVE was unmounted:
+if mount | grep "$mount" > /dev/null; then
+	"$fuserm" -u "$mount" &> /dev/null
+	printf "#### $now6 - ${green}REPO GOOGLE DRIVE DIR UNMOUNTED${nocolor}!\n####\n"
+fi
+end=$(date +%s)
+runtime=$((end-start))
+minutes="$(printf %.2f "$((100 * $runtime / 60))e-2")"
+printf "#### TOTAL TIME TAKEN: ${cyan}$runtime SECONDS${nocolor}!\n####\n"
+printf "#### WHICH IS: ${brown}"$minutes" MINUTES${nocolor}!\n####\n"
+now6=$(date +'%d %B %Y %Hh:%Mm:%Ss')
+printf "#### $now6 - ${purple}BACKUP ENDED${nocolor}!\n\n"
+
+exit 0
