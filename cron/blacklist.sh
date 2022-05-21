@@ -1,16 +1,17 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 #
 # Ivan Angelov ivangotoy@gmail.com
+#
 # https://digtvbg.com/
 #
-# This is a bash script that tries to "ban" some of the bad clients on your nginx webserver.
+# This is a zsh script that tries to ban some of the bad clients on your nginx webserver.
 #
 # After we make sure it works for us we can add it to root crontab.
 #
 # Tooling used:
-# 
-# - rg nginx ipset iptables
-# 
+#
+# rg nginx ipset iptables sed
+#
 # Works nicely in crontab, just keep your nginx access.log available at all times :)
 #
 # Feel free to create a hashtable called blacklist in ipset too... or bother to read below.
@@ -37,21 +38,16 @@ printf "This script must be run as root! sudo $0 \n"
 exit 1
 fi
 
-if [[ ! -d /home/$USER/blacklist ]];
+if [[ ! -d ~/blacklist ]];
 then
-mkdir -p /home/$USER/blacklist
-touch /home/$USER/blacklist/status
+mkdir -p ~/blacklist
+touch ~/blacklist/status
 fi
 
 if [[ ! -f "$log" ]];
 then
 printf "$log not found! If you have one - provide proper location in this script and retry.\n"
 exit 1
-fi
-
-if [[ -f /etc/ipsets.conf ]];
-then
-ipset -q restore -! < /etc/ipsets.conf &> /dev/null
 fi
 
 ipset -q list blacklist &> /dev/null
@@ -62,11 +58,17 @@ printf "Hashtable named blacklist does not exist. Creating it for you.\n"
 ipset create blacklist hash:ip
 fi
 
-for badip in $list
-do
-ipset -q -A blacklist "$badip"
-done
+iptables-save | rg blacklist &> /dev/null
 
-ipset -q save blacklist -f /etc/ipsets.conf &> /dev/null
+if [[ $? -ne 0 ]];
+then
+  iptables -I INPUT -m set --match-set blacklist src -j DROP
+fi
 
-printf "Cron blacklisting status OK - $(date)\n" >> /home/$USER/blacklist/status
+printf "create blacklist hash:ip family inet hashsize 4096 maxelem 65536 bucketsize 12 initval 0x6084fd11\n$list\n" | sed '1! s/^/add blacklist /g' > ~/blacklist/ipsets.conf
+ipset -q flush blacklist
+ipset -q restore -! < ~/blacklist/ipsets.conf &> /dev/null
+
+printf "Cron blacklisting status OK - $(date)\n" >> ~/blacklist/status
+
+exit 0
