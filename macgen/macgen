@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+#
+# Ivan Angelov ivangotoy@gmail.com
+#
+# https://digtvbg.com/
+#
+# Script for generating all the 16 million valic mac addresses - suitable for:
+#
+# hmmm... educational purposes only and definitely not for device spoofing/scanning endeavors.
+
+export LC_ALL=C
+export LANG=C
+
+printf "Example device prefix is: 00:1A:79: which is 9 symbols.\n\nProvide 9 symbols prefix:\n\n"
+
+read PREFIX
+
+if [ ${#PREFIX} -ne 9 ]; then
+printf "Device prefix not 9 symbols.\n\nExitting now.\n"
+exit 1
+fi
+
+start=$(date +%s)
+
+printf "Selected device prefix is $PREFIX\n\nPlease, wait a sec...\n\n"
+printf "%s\n" "$PREFIX"{0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f}{0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f}:{0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f}{0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f}:{0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f}{0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f} | shuf > "${PREFIX}-all-macs-16M.txt"
+BIGFILE="${PREFIX}-all-macs-16M.txt"
+end=$(date +%s)
+runtime=$((end-start))
+printf "16 MILLION MACs GENERATED AND RANDOMIZED FOR: $runtime SECONDS!\n\nYou can find them in $BIGFILE\n\n"
+
+printf "Continue with splitting the big file?\n\n"1" for yes, "2" for no:\n\n"
+
+select answer in "Yes" "No"; do
+case $answer in
+Yes) printf "How to split the 16M macs file?\n\nValid choices are:\n\n1) for 500k macs per file\n\n2) for 1M macs per file\n\n3) for 256k macs per file\n\nSelect 1 2 or 3 - other value for exit:\n"
+read split
+if [ "$split" == 1 ]; then
+printf "Splitting $BIGFILE to smaller 500k lines each.\n"
+split -l 500000 -a 2 --numeric-suffixes=1 "$BIGFILE" "${PREFIX}-500kPART" --additional-suffix=.txt
+elif [ "$split" == 2 ]; then
+printf "Splitting $BIGFILE to smaller 1M lines each.\n"
+split -l 1000000 -a 2 --numeric-suffixes=1 "$BIGFILE" "${PREFIX}-1mPART" --additional-suffix=.txt
+elif [ "$split" == 3 ]; then
+printf "Splitting $BIGFILE to smaller 256k lines each.\n"
+split -l 256000 -a 2 --numeric-suffixes=1 "$BIGFILE" "${PREFIX}-256kPART" --additional-suffix=.txt
+else
+printf "Exitting now.\n\nBye!\n"
+fi
+break;;
+No)
+printf 'Exitting now.\n'
+  exit 0 ;;
+*)
+printf "I guess 1 or 2 were too confusing.\n\nExitting now.\n"
+exit 0 ;;
+    esac
+done
