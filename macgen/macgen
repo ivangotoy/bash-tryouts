@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 #
 # Ivan Angelov ivangotoy@gmail.com
 #
@@ -35,13 +35,13 @@ select answer in "Yes" "No"; do
 case $answer in
 Yes) printf "How to split the 16M macs file?\n\nValid choices are:\n\n1) for 500k macs per file\n\n2) for 1M macs per file\n\n3) for 256k macs per file\n\nSelect 1 2 or 3 - other value for exit:\n"
 read split
-if [ "$split" == 1 ]; then
+if [[ $split == 1 ]]; then
 printf "Splitting $BIGFILE to smaller 500k lines each.\n"
 split -l 500000 -a 2 --numeric-suffixes=1 "$BIGFILE" "${PREFIX}-500kPART" --additional-suffix=.txt
-elif [ "$split" == 2 ]; then
+elif [[ $split == 2 ]]; then
 printf "Splitting $BIGFILE to smaller 1M lines each.\n"
 split -l 1000000 -a 2 --numeric-suffixes=1 "$BIGFILE" "${PREFIX}-1mPART" --additional-suffix=.txt
-elif [ "$split" == 3 ]; then
+elif [[ $split == 3 ]]; then
 printf "Splitting $BIGFILE to smaller 256k lines each.\n"
 split -l 256000 -a 2 --numeric-suffixes=1 "$BIGFILE" "${PREFIX}-256kPART" --additional-suffix=.txt
 else
