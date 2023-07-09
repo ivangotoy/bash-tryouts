@@ -1,0 +1,64 @@
+#!/usr/bin/env ash
+# -- CRON SCRIPT FOR UPDATING NAVIDROME AUDIO SERVER RUNNING ON OPENWRT - NO SYSTEMD NO BULLSHIT PLEASE
+# -- AUTHOR Ivan Angelov ivangotoy et g mail
+# -- KEEP THE SCRIPT OUTPUT SILENT & AS IDEMPOTENT AS POSSIBLE
+# -- README:
+# --
+# -- /mnt/sdb1/token IS A TEXT FILE WITH A VALID (NOT EXPIRED) GITHUB TOKEN TO INTERACT WITH GITHUB API
+# -- NEWID IS THE BUILD ID OF THE GITHUB ACTIONS ARTIFACT - LATEST
+# -- URL IS THE DOWNLOAD URL FOR THE LATEST BINARY FILES
+# -- /mnt/sdb1/ID IS THE CURRENTLY RUNNING BINARY IN OPENWRT
+# -- IF THERE IS A NEWER BINARY - GO GET IT AND UPDATE OLDID ACCORINGLY
+# --
+# -- NO ALERTING HOWTO:
+# --
+# -- IF NAVIDROME IS NOT RUNNING - START IT
+# -- IF UPDATE IS SUCCESSFULL = NO EMAIL
+# -- IF UPDATE FAILS = NO EMAIL
+# -- IF NAVIDROME CANNOT START = NO EMAIL
+# -- WHATEVER = NO EMAIL PLEASE
+# --
+# -- CLEAN ALL UNNECESSARY FILES AND TRY TO KEEP IT AS IDEMPOTENT AS POSSIBLE
+set -e
+TOKEN="$(cat /mnt/sdb1/token)"
+OLDID="$(cat /mnt/sdb1/ID)"
+CURL () {
+curl -s -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -H "Authorization: Bearer $TOKEN" -L https://api.github.com/repos/navidrome/navidrome/actions/artifacts
+}
+NEWID="$(CURL | grep -B2 "binaries" | head -1 | cut -d ":" -f 2 | cut -c 2- | cut -c -9)"
+URL="$(CURL | grep "$NEWID/zip" | cut -d '"' -f 4)"
+
+# -- Ensure our navidrome server is up and running:
+
+if ! pidof /mnt/sdb1/navidrome/navidrome > /dev/null
+then
+	/etc/init.d/navidrome start
+fi
+
+# -- Check if there is an updated version and do the needful bruh.
+
+if [ "$OLDID" == "$NEWID" ]; then
+exit 0
+else
+printf "${NEWID}\n" > /mnt/sdb1/ID
+curl -s -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -H "Authorization: Bearer $TOKEN" -L -o /tmp/navidrome.zip "$URL"
+unzip -q -j "/tmp/navidrome.zip"  "navidrome_linux_amd64_linux_amd64_v1/navidrome" -o -d "/mnt/sdb1/Music/"
+sync
+rm -f /tmp/navidrome.zip
+sync
+fi
+
+# -- If we DO smell an updated version then it's high time we deployed it in PROD:
+
+if [[ -f /mnt/sdb1/Music/navidrome ]]; then
+	chmod +x /mnt/sdb1/Music/navidrome
+	/etc/init.d/navidrome stop
+	sync
+	sleep 5
+	cp /mnt/sdb1/navidrome/navidrome /mnt/sdb1/navidrome-backup
+	cp /mnt/sdb1/navidrome/navidrome.db /mnt/sdb1/
+	cp /mnt/sdb1/navidrome/navidrome.toml /mnt/sdb1/
+	rm -f /mnt/sdb1/navidrome/navidrome
+	mv /mnt/sdb1/Music/navidrome /mnt/sdb1/navidrome/
+	/etc/init.d/navidrome start
+fi
