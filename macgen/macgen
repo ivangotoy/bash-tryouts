@@ -11,7 +11,7 @@
 export LC_ALL=C
 export LANG=C
 
-printf "Example device prefix is: 00:1A:79: which is 9 symbols.\n\nProvide 9 symbols prefix:\n\n"
+printf "Example device prefix is: 00:1A:79: or 78:A3:52: which is 9 symbols.\n\nProvide 9 symbols prefix:\n\n"
 
 read PREFIX
 
