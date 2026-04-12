@@ -1,3 +1,6 @@
+> ⚠️ **Mirror.** Primary repository: [git.digtvbg.com](https://git.digtvbg.com/ivangotoy/bash-tryouts/)
+> Development, issues, and PRs happen there. The GitHub repo is read-only.
+
 # bash-tryouts
 
 POWERED BY ETHIOPIA YIRGACHEFFE SPECIALTY COFFEE SCA 84 - PROCESS HONEY HEIRLOOM
