@@ -13,45 +13,48 @@ export LANG=C
 # Let's try and check if the bare minimum is available:
 
 if [[ "$EUID" -ne 0 ]]; then
-printf "This script must be run as root!\nE.G. sudo $0\n"
-exit 1
+	printf 'This script must be run as root!\nE.G. sudo %s\n' "$0"
+	exit 1
 fi
 
-shopt -s extglob
-
-disks="/dev/nvme+([0-9])"
-for disk in $disks; do
-if [[ ! -c $disk ]]; then
-printf "No nvme disks available in the system.\nGo get them some first.\n"
-exit 1
-fi
+# NVMe controllers are the character devices /dev/nvme0, /dev/nvme1, ...
+# (/dev/nvme0n1 and friends are block devices and are skipped).
+disks=()
+for disk in /dev/nvme[0-9]*; do
+	[[ -c "$disk" && "$disk" =~ ^/dev/nvme[0-9]+$ ]] && disks+=("$disk")
 done
 
-if ! type nvme &> /dev/null; then
-printf "nvme-cli not installed - try installing it.\n"
-exit 1
+if (( ${#disks[@]} == 0 )); then
+	printf 'No nvme disks available in the system.\nGo get them some first.\n'
+	exit 1
 fi
 
-if ! type rg &> /dev/null; then
-printf "ripgrep not installed - go make a prayer habibti.\n"
-exit 1
+if ! type nvme &>/dev/null; then
+	printf 'nvme-cli not installed - try installing it.\n'
+	exit 1
 fi
 
-if ! type column &> /dev/null; then
-printf "column not installed - go figure.\n"
-exit 1
+if ! type rg &>/dev/null; then
+	printf 'ripgrep not installed - go make a prayer habibti.\n'
+	exit 1
+fi
+
+if ! type column &>/dev/null; then
+	printf 'column not installed - go figure.\n'
+	exit 1
 fi
 
 # Let's get the job done:
 
-nvme_temps () {
-for nvmes in /dev/nvme+([0-9]);
-do
-printf "\n"
-printf ">>>>> $nvmes TEMPS: DEGREES\nFLASH MEMORY:"
-printf '%s\n' "$(sudo nvme smart-log $nvmes)" | rg 'temp' | cut -d ":" -f 2
-printf "ASIC CHIP:"
-printf '%s\n' "$(sudo nvme smart-log $nvmes)" | rg "or 1" | cut -d ":" -f 2
-done
+nvme_temps() {
+	local disk log
+	for disk in "${disks[@]}"; do
+		log="$(nvme smart-log "$disk")"
+		printf '\n'
+		printf '>>>>> %s TEMPS: DEGREES\nFLASH MEMORY:' "$disk"
+		printf '%s\n' "$log" | rg 'temp' | cut -d ':' -f 2
+		printf 'ASIC CHIP:'
+		printf '%s\n' "$log" | rg 'or 1' | cut -d ':' -f 2
+	done
 }
-nvme_temps | column -t -s ":"
+nvme_temps | column -t -s ':'

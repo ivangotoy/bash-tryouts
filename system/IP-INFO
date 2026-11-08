@@ -6,27 +6,28 @@
 # I usually execute this tiny script automatically on shell login.
 # Its idea is to try and find LAN and WAN ips of the machine I've just logged in.
 # We need to have these available in our system:
-# - zsh 
+# - zsh
 # - ip
 # - rg
+# - curl
 # Let's begin with just one empty line for starters.
 
-printf "\n"
+printf '\n'
 
-# Local IP 
+# Local IP(s): every global scope IPv4 address, one per line.
 
-printf "MY LOCAL IP IS: "; ip -c a show | rg 'inet ' | rg -v host |  cut -d ' ' -f 6 |  rev | cut -c 4- | rev
+printf 'MY LOCAL IP IS: '; ip -4 -o addr show scope global | rg -o 'inet [0-9.]+' | cut -d ' ' -f 2
 
 # Another empty line for much better readability.
 
-printf "\n"
+printf '\n'
 
 # Public IP
 
-printf "MY PUBLIC IP IS: "; curl --tlsv1.3 --silent --compressed -4 --dns-ipv4-addr 192.168.1.1 --http2 --parallel --parallel-immediate --sasl-ir checkip.amazonaws.com
+printf 'MY PUBLIC IP IS: '; curl --tlsv1.3 --silent --compressed -4 checkip.amazonaws.com
 
 # The last empty line for the best placement of data on the terminal.
 
-printf "\n"
+printf '\n'
 
 exit 0
