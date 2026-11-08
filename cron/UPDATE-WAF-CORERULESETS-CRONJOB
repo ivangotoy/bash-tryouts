@@ -12,7 +12,6 @@ export LC_ALL=C
 export LANG=C
 
 repo="/etc/nginx/modsec/coreruleset/"
-branch="v3.4/dev"
 # Root-only (root crontab), so the log has a fixed absolute path.
 logfile="/var/log/coreruleset-updates.log"
 
@@ -27,8 +26,16 @@ if ! git fetch -q; then
 	exit 1
 fi
 
+# Follow whatever branch is checked out (e.g. main for CRS v4) and its upstream.
+if ! upstream="$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null)" || [[ -z "$upstream" ]]; then
+	branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
+	log "Branch ${branch:-?} in $repo has no upstream, set one with: git branch -u origin/<branch>"
+	printf 'Branch %s in %s has no upstream, nothing changed.\n' "${branch:-?}" "$repo" >&2
+	exit 1
+fi
+
 headhash="$(git rev-parse HEAD)"
-upstreamhash="$(git rev-parse "${branch}@{upstream}")"
+upstreamhash="$(git rev-parse "$upstream")"
 
 # If updates are detected: git pull and reload the webserver.
 # Human readable lines go to the log file above.
