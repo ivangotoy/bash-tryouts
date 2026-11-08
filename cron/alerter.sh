@@ -11,7 +11,7 @@
 # msmtp (or any sendmail compatible MTA) should be configured on the system;
 # with msmtp install the msmtp-mta package or link msmtp as sendmail.
 
-PATH="/home/$USER/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/usr/local/games:/usr/games:/home/$USER/alerter"
+PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/usr/local/games:/usr/games:$HOME/alerter"
 
 processes=(nginx php-fpm7.4 mariadbd tvheadend)
 sender="username@email.xxx"

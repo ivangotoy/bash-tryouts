@@ -15,17 +15,17 @@
 #
 # Create restic repository example:
 #
-# 1. mkdir /home/$USER/GoogleDriveBackup
+# 1. mkdir $HOME/GoogleDriveBackup
 #
 # 2. execute in terminal "google-drive-ocamlfuse -label YOUNAMEIT" to authorize it with google drive via web browser
 #
-# 3. mount google drive locally: google-drive-ocamlfuse -label YOUNAMEIT /home/$USER/GoogleDriveBackup
+# 3. mount google drive locally: google-drive-ocamlfuse -label YOUNAMEIT $HOME/GoogleDriveBackup
 #
-# 4. create a subdirectory for the restic repository while gdrive is mounted: mkdir /home/$USER/GoogleDriveBackup/ryzen-backup
+# 4. create a subdirectory for the restic repository while gdrive is mounted: mkdir $HOME/GoogleDriveBackup/ryzen-backup
 #
-# 5. Initialise a restic repo in it: restic init --compression max --cleanup-cache --repository-version latest -r /home/$USER/GoogleDriveBackup/ryzen-backup
+# 5. Initialise a restic repo in it: restic init --compression max --cleanup-cache --repository-version latest -r $HOME/GoogleDriveBackup/ryzen-backup
 #
-# 6. /home/$USER/GoogleDriveBackup/ryzen-backup will contain the backups - encrypted in your google drive.
+# 6. $HOME/GoogleDriveBackup/ryzen-backup will contain the backups - encrypted in your google drive.
 #
 # Then set label, mount and RESTIC_REPOSITORY below to the values you used,
 # and list what to back up in ~/restic-includes.conf (and what to skip in
@@ -34,13 +34,13 @@
 # Settings:
 
 label="ivangotoy84"
-mount="/home/$USER/GoogleDriveBackup"
+mount="$HOME/GoogleDriveBackup"
 export RESTIC_REPOSITORY="${mount}/ryzen-backup"
-export RESTIC_CACHE_DIR="/home/$USER/.cache/restic"
+export RESTIC_CACHE_DIR="$HOME/.cache/restic"
 # Don't encrypt like everyone's watching, host is secure - ~/.restic-password contains the repo password in plain text.
-export RESTIC_PASSWORD_FILE="/home/$USER/.restic-password"
-includes="/home/$USER/restic-includes.conf"
-excludes="/home/$USER/restic-excludes.conf"
+export RESTIC_PASSWORD_FILE="$HOME/.restic-password"
+includes="$HOME/restic-includes.conf"
+excludes="$HOME/restic-excludes.conf"
 keep_last=10
 
 # Check for tools:

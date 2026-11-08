@@ -13,7 +13,8 @@ export LANG=C
 
 repo="/etc/nginx/modsec/coreruleset/"
 branch="v3.4/dev"
-logfile="/home/$USER/alerter/coreruleset-updates"
+# Root-only (root crontab), so the log has a fixed absolute path.
+logfile="/var/log/coreruleset-updates.log"
 
 log() {
 	printf '%s %s\n\n' "$(date)" "$1" >> "$logfile"
