@@ -3,32 +3,45 @@
 # Ivan Angelov ivangotoy@gmail.com
 # https://digtvbg.com/
 #
-# A small crontab executed by *superuser* script for
-# updating my WAF ModSecurity rulesets on a regular basis.
-# Execute it once a day or every other day is fine just fine.
-# A Seth-and-Forgeth solution.
+# A small script, run from the *superuser* crontab, that keeps the
+# ModSecurity OWASP Core Rule Set (WAF rules) git checkout up to date.
+# Run it once a day or every other day, that is just fine.
+# A Set-and-Forget solution.
 
 export LC_ALL=C
 export LANG=C
 
-# Enter desired git repo folder:
+repo="/etc/nginx/modsec/coreruleset/"
+branch="v3.4/dev"
+logfile="/home/$USER/alerter/coreruleset-updates"
 
-cd /etc/nginx/modsec/coreruleset/
+log() {
+	printf '%s %s\n\n' "$(date)" "$1" >> "$logfile"
+}
 
-git fetch
-HEADHASH="$(git rev-parse HEAD)"
-UPSTREAMHASH="$(git rev-parse v3.4/dev@{upstream})"
+cd "$repo" || exit 1
 
-# If updates are detected - git pull and reload webserver
-# Add some human readble strings to a log file of your choice.
+if ! git fetch -q; then
+	log "git fetch failed, nothing changed."
+	exit 1
+fi
 
-if [ "$HEADHASH" != "$UPSTREAMHASH" ];
-then
-git pull &> /dev/null
-sync &> /dev/null
-systemctl reload nginx &> /dev/null
-printf "$(date) Corerulset updated from git! GG!!\n\n" >> /home/$USER/alerter/coreruleset-updates
+headhash="$(git rev-parse HEAD)"
+upstreamhash="$(git rev-parse "${branch}@{upstream}")"
+
+# If updates are detected: git pull and reload the webserver.
+# Human readable lines go to the log file above.
+
+if [[ "$headhash" != "$upstreamhash" ]]; then
+	if git pull -q &>/dev/null; then
+		sync &>/dev/null
+		systemctl reload nginx &>/dev/null
+		log "Coreruleset updated from git! GG!!"
+	else
+		log "Coreruleset update found but git pull failed!"
+		exit 1
+	fi
 else
-printf "$(date) Just another CRONJOB run - no updates!\n\n" >> /home/$USER/alerter/coreruleset-updates
+	log "Just another CRONJOB run - no updates!"
 fi
 exit 0

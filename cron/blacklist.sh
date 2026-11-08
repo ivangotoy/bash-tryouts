@@ -14,61 +14,62 @@
 #
 # Works nicely in crontab, just keep your nginx access.log available at all times :)
 #
-# Feel free to create a hashtable called blacklist in ipset too... or bother to read below.
+# The script creates the ipset hash table "blacklist" and the iptables rule
+# when they are missing. To do it by hand:
 #
-# Create ipset hashtable/set called "blacklist" with this command:
-#
-# ipset create (-N is like create too) blacklist hash:ip
-#
-# Make iptables do the right thing with your newly created hashtable called "blacklist":
-#
+# ipset create blacklist hash:ip
 # iptables -I INPUT -m set --match-set blacklist src -j DROP
 #
-# Save you iptables rules and populate your blacklist hastable.
+# Every run rebuilds the set from the current access.log and saves it to
+# ~/blacklist/ipsets.conf; ~/blacklist/status gets one line per run.
 
 export LC_ALL=C
 export LANG=C
 
 log="/var/log/nginx/access.log"
+statedir=~/blacklist
+
+# Our own addresses, never banned (rg regex, matched anywhere in the line).
 myip="127.0.0.1|192.168.1.1|192.168.1.222|192.168.1.70"
-list="$(rg "jndi|system.php|actuator|kerbynet|RadEditorProvider|telerikwebui|Telerik.Web.UI|phpMyAdmin|content-post.php|mide.php|phpunit|HEADER.md|/owa/auth/logon.aspx|main.installer.php|\?author=[0-9]|wp-login.php|logon|getuser|execute|passwd|Nikto|/\.env |nuclei|union|UNION|sql|conf|/[(w|x)]*shell|cmd|Admin|admin|cfg|boaform" "$log" | rg -v "$myip|DuckDuckBot|Adsbot|Googlebot|YandexBot|bingbot|SemrushBot|PetalBot" | cut -d ' ' -f 1,9 | rg '301|302|400|403|404|499' | cut -d ' ' -f 1 | sort --parallel=4 -n | uniq -i)"
+
+# Request patterns that earn a ban (rg regex).
+bad="jndi|system.php|actuator|kerbynet|RadEditorProvider|telerikwebui|Telerik.Web.UI|phpMyAdmin|content-post.php|mide.php|phpunit|HEADER.md|/owa/auth/logon.aspx|main.installer.php|\?author=[0-9]|wp-login.php|logon|getuser|execute|passwd|Nikto|/\.env |nuclei|union|UNION|sql|conf|/[(w|x)]*shell|cmd|Admin|admin|cfg|boaform"
+
+# Clients that are never banned (rg regex).
+good="$myip|DuckDuckBot|Adsbot|Googlebot|YandexBot|bingbot|SemrushBot|PetalBot"
 
 if [[ "$EUID" -ne 0 ]]; then
-printf "This script must be run as root! sudo $0 \n"
-exit 1
+	printf 'This script must be run as root! sudo %s\n' "$0"
+	exit 1
 fi
 
-if [[ ! -d ~/blacklist ]];
-then
-mkdir -p ~/blacklist
-touch ~/blacklist/status
+if [[ ! -f "$log" ]]; then
+	printf '%s not found! If you have one - provide proper location in this script and retry.\n' "$log"
+	exit 1
 fi
 
-if [[ ! -f "$log" ]];
-then
-printf "$log not found! If you have one - provide proper location in this script and retry.\n"
-exit 1
+mkdir -p "$statedir"
+
+if ! ipset -q list blacklist &>/dev/null; then
+	printf 'Hashtable named blacklist does not exist. Creating it for you.\n'
+	ipset create blacklist hash:ip
 fi
 
-ipset -q list blacklist &> /dev/null
-
-if [[ $? -ne 0 ]];
-then
-printf "Hashtable named blacklist does not exist. Creating it for you.\n"
-ipset create blacklist hash:ip
+if ! iptables-save | rg -q -- '--match-set blacklist src'; then
+	iptables -I INPUT -m set --match-set blacklist src -j DROP
 fi
 
-iptables-save | rg blacklist &> /dev/null
+# Combined log format: field 1 is the client IP, field 9 the status code.
+list="$(rg -- "$bad" "$log" | rg -v -- "$good" | cut -d ' ' -f 1,9 | rg ' (301|302|400|403|404|499)$' | cut -d ' ' -f 1 | sort --parallel=4 -n | uniq -i)"
 
-if [[ $? -ne 0 ]];
-then
-  iptables -I INPUT -m set --match-set blacklist src -j DROP
-fi
+{
+	printf 'create blacklist hash:ip family inet hashsize 4096 maxelem 65536 bucketsize 12 initval 0x6084fd11\n'
+	[[ -n "$list" ]] && printf 'add blacklist %s\n' ${(f)list}
+} > "$statedir/ipsets.conf"
 
-printf "create blacklist hash:ip family inet hashsize 4096 maxelem 65536 bucketsize 12 initval 0x6084fd11\n$list\n" | sed '1! s/^/add blacklist /g' > ~/blacklist/ipsets.conf
 ipset -q flush blacklist
-ipset -q restore -! < ~/blacklist/ipsets.conf &> /dev/null
+ipset -q restore -! < "$statedir/ipsets.conf" &>/dev/null
 
-printf "Cron blacklisting status OK - $(date)\n" >> ~/blacklist/status
+printf 'Cron blacklisting status OK - %s\n' "$(date)" >> "$statedir/status"
 
 exit 0
