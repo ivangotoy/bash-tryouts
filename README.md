@@ -51,6 +51,19 @@ the typical bash scripting standards:
 | system/nvme-disks-temperatures | bash | any, root | NVMe temperatures (nvme-cli) |
 | system/odroid-cpu-temp.sh | bash | ODROID N2 | CPU cluster temperatures |
 | system/stats.sh | zsh | any | memory, disk and load summary |
+| tools/lint.sh | bash | any | syntax check and shellcheck for the scripts, see Linting |
+
+## Linting
+
+    tools/lint.sh             # every tracked script
+    tools/lint.sh cron/*.sh   # only these files
+
+It picks the check from each file's shebang: `zsh -n`, `bash -n`, `sh -n`,
+and `busybox ash -n` (or `bash --posix -n` when busybox is missing) for
+the ash script. When shellcheck is installed (or `SHELLCHECK` points to
+it) the bash, sh and ash scripts are also run through it; shellcheck has
+no zsh support. Exit status 1 means at least one check failed. There is
+no CI; run it before committing.
 
 ## nordvpn: supplying the WireGuard private key
 
