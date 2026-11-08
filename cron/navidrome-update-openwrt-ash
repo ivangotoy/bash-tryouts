@@ -6,35 +6,32 @@
 #
 # Keep the output silent and the run as idempotent as possible:
 # - if navidrome is not running, start it
-# - if a newer GitHub Actions build exists, download and deploy it
+# - if a newer GitHub release exists, download and deploy it
 # - no email in any case (cron mails only what is printed)
 #
-# Files:
-#   /mnt/sdb1/token  text file with a valid (not expired) GitHub token
-#   /mnt/sdb1/ID     artifact ID of the currently deployed binary
+# The latest release is read from the public GitHub API (no token needed):
+#   https://api.github.com/repos/navidrome/navidrome/releases/latest
+# and the asset navidrome_<version>_linux_<ARCH>.tar.gz is deployed.
+# ARCH defaults to amd64; set it for other routers, e.g. ARCH=arm64 or
+# armv7 (see the asset names on the release page).
 #
-# NEWID is the ID of the latest "binaries" artifact of navidrome/navidrome.
-# ID is updated only after the new binary has been downloaded and extracted,
-# so a failed download is retried on the next run.
+# Files:
+#   /mnt/sdb1/ID     release tag of the currently deployed binary
+#
+# A missing ID file counts as "nothing deployed yet", so the first run
+# deploys the latest release. ID is updated only after the new binary has
+# been downloaded and extracted, so a failed download is retried on the
+# next run.
 
 set -e
 
+ARCH="${ARCH:-amd64}"
 BASE=/mnt/sdb1
-API=https://api.github.com/repos/navidrome/navidrome/actions/artifacts
-ZIP=/tmp/navidrome.zip
-ZIPMEMBER=navidrome_linux_amd64_linux_amd64_v1/navidrome
+API=https://api.github.com/repos/navidrome/navidrome/releases/latest
+ARCHIVE="${TMPDIR:-/tmp}/navidrome.tar.gz"
 STAGING="$BASE/Music"
 
-TOKEN="$(cat "$BASE/token")"
 OLDID="$(cat "$BASE/ID" 2>/dev/null || true)"
-
-gh_curl() {
-	curl -s -f -L \
-		-H "Accept: application/vnd.github+json" \
-		-H "X-GitHub-Api-Version: 2022-11-28" \
-		-H "Authorization: Bearer $TOKEN" \
-		"$@"
-}
 
 # Ensure the navidrome server is up and running.
 
@@ -42,20 +39,20 @@ if ! pidof "$BASE/navidrome/navidrome" >/dev/null; then
 	/etc/init.d/navidrome start
 fi
 
-# Look for a newer build. One API call, both values come from the same answer.
+# Look for a newer release. One API call, both values come from the same answer.
 
-ARTIFACTS="$(gh_curl "$API" || true)"
-NEWID="$(printf '%s\n' "$ARTIFACTS" | grep -B2 'binaries' | head -n 1 | tr -cd '0-9')"
-URL="$(printf '%s\n' "$ARTIFACTS" | grep "/$NEWID/zip" | head -n 1 | cut -d '"' -f 4)"
+RELEASE="$(wget -q -O - "$API" 2>/dev/null || true)"
+NEWID="$(printf '%s\n' "$RELEASE" | grep -o '"tag_name": *"[^"]*"' | head -n 1 | cut -d '"' -f 4)"
+URL="$(printf '%s\n' "$RELEASE" | grep -o '"browser_download_url": *"[^"]*_linux_'"$ARCH"'\.tar\.gz"' | head -n 1 | cut -d '"' -f 4)"
 
 if [ -z "$NEWID" ] || [ -z "$URL" ] || [ "$OLDID" = "$NEWID" ]; then
 	exit 0
 fi
 
-rm -f "$ZIP"
-gh_curl -o "$ZIP" "$URL"
-unzip -q -j -o "$ZIP" "$ZIPMEMBER" -d "$STAGING/"
-rm -f "$ZIP"
+rm -f "$ARCHIVE"
+wget -q -O "$ARCHIVE" "$URL"
+tar -xzf "$ARCHIVE" -C "$STAGING/" navidrome
+rm -f "$ARCHIVE"
 sync
 
 # A freshly extracted binary is waiting in staging: deploy it.

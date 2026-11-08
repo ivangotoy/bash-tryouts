@@ -34,7 +34,7 @@ the typical bash scripting standards:
 | cron/alerter.sh | zsh | server, cron | mails (sendmail/msmtp) when nginx, php-fpm, mariadb or tvheadend is not running |
 | cron/blacklist.sh | zsh | server, root cron | bans IPs that probe nginx for exploits, via ipset + iptables |
 | cron/UPDATE-WAF-CORERULESETS-CRONJOB | zsh | server, root cron | git pulls the ModSecurity Core Rule Set and reloads nginx |
-| cron/navidrome-update-openwrt-ash | busybox ash | OpenWrt router, cron | updates Navidrome from the latest GitHub Actions build |
+| cron/navidrome-update-openwrt-ash | busybox ash | OpenWrt router, cron | updates Navidrome from the latest GitHub release (linux_$ARCH asset) |
 | cron/PROTIP-DNS-ADBLOCK-ADVICE.txt | - | - | dnscrypt-proxy 2 as an ad blocker |
 | macgen/macgen | zsh | desktop | all 16.7M MACs for a prefix, shuffled, optionally split |
 | nordvpn/BG-WG-16-NORDVPN, ES-WG-16-NORDVPN | zsh | desktop | 16 least loaded NordVPN WireGuard servers in Bulgaria / Spain |
