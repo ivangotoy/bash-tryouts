@@ -10,8 +10,8 @@
 # Assumptions:
 # - ssh passwordless login to the openwrt router (ssh host alias "router")
 #   works for the account building OpenWrt.
-# - wget; zsh; openwrt git source tree in ~/Downloads/openwrt - have some common sense bout those.
-# - variables defined in CAPS which are not system vars are a sign of bad taste or good times with guns.
+# - wget; zsh; openwrt git source tree in ~/Downloads/openwrt - adjust these to your setup.
+# - variables defined in CAPS are this script's settings, not system variables.
 
 # Timing details (for my personal use - benchmarking various cpus and setups, irrelevant for fw updates)
 

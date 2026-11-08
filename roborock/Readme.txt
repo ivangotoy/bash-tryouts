@@ -16,7 +16,7 @@ Provided the above conditions we can:
 
 - copy some online radios playlist over ssh
 
-- use some pathetic shell scripting to control those:
+- use a few small shell scripts to control those:
 
 Example use case (adapt any way you see fit):
 
@@ -25,7 +25,7 @@ Example use case (adapt any way you see fit):
 2. In this folder we may want to have:
 For music
 - mp3 files
-- playlist.m3u file containing paths to those mp3 files - now is the time to learn what a playlist file is all about
+- playlist.m3u file containing paths to those mp3 files, one per line
 - muzika.sh - shuffles and plays our playlist.m3u
 
 For online radios:

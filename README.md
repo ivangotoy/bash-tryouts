@@ -20,7 +20,7 @@ the typical bash scripting standards:
 - busybox shuf - a nice shuffling utility but its busybox variant
 - play from the sox package
 - wget as a curl alternative
-- adb - the Android Debug Bridge as the normies know it.
+- adb - the Android Debug Bridge.
 - for evaluation [[  ]] instead of [  ] (except in the busybox ash script)
 - for substitution use $() instead of backticking ``
 - restic - backups done not left but righty-ish

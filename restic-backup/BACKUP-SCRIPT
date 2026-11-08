@@ -62,7 +62,7 @@ fi
 
 restic=(restic --cleanup-cache --compression max -q)
 
-# Alphabet mafia engaged:
+# Terminal colors:
 lightred='\033[1;31m'
 lightgreen='\033[1;32m'
 yellow='\033[1;33m'
@@ -97,7 +97,7 @@ printf "\n#### %s - ${lightred}BACKUP STARTED${nocolor}!\n####\n" "$(date +'%d %
 mkdir -p "$RESTIC_CACHE_DIR"
 
 if [[ ! -d "$mount" ]]; then
-	printf 'Holla benchode, mount directory %s not found, fix "mount" at the top of this script!!!\n' "$mount"
+	printf 'Mount directory %s not found, fix "mount" at the top of this script!!!\n' "$mount"
 	exit 1
 fi
 
@@ -107,11 +107,11 @@ step "$lightgreen" "REPO DIRECTORY MOUNT"
 google-drive-ocamlfuse -label "$label" "$mount" &>/dev/null || fail "GOOGLE DRIVE MOUNT"
 
 if [[ ! -d "$RESTIC_REPOSITORY" ]]; then
-	printf 'Holla benchode, %s not found, fix "RESTIC_REPOSITORY" at the top of this script!!!\n' "$RESTIC_REPOSITORY"
+	printf 'Restic repository %s not found, fix "RESTIC_REPOSITORY" at the top of this script!!!\n' "$RESTIC_REPOSITORY"
 	fail "REPOSITORY CHECK"
 fi
 
-# Check if folder is actually INITIALISED restic repo or you sucked way too many donkey boners last night:
+# Check that the folder is an initialised restic repo:
 
 if [[ ! -f "${RESTIC_REPOSITORY}/config" ]]; then
 	printf 'Folder not a restic repo, please read the steps at the top: head -32 %s\n' "$0"
@@ -132,7 +132,7 @@ $restic unlock &>/dev/null || fail "UNLOCK"
 step "$red" "REPO UNLOCKED FOR NEXT BACKUP"
 
 fusermount3 -u "$mount" &>/dev/null
-# Check if SCROOGLE DRIVE was unmounted, try once more if not:
+# Check that Google Drive was unmounted, try once more if not:
 is_mounted && fusermount3 -u "$mount" &>/dev/null
 step "$green" "REPO GOOGLE DRIVE DIR UNMOUNTED"
 
