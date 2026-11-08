@@ -10,8 +10,9 @@
 #
 # WireGuard should be properly configured with a valid/paid account key:
 # /etc/wireguard/bg.conf (see bg.conf in this directory) is managed by
-# wg-quick@bg, and its "Endpoint = bgNN.nordvpn.com:51820" line is what
-# this script edits.
+# wg-quick@bg, and its "Endpoint = bgNN.nordvpn.com:51820" and
+# "PublicKey = ..." lines are what this script edits: each server has its
+# own key, so both are switched together.
 
 export LC_ALL=C
 export LANG=C
@@ -37,9 +38,16 @@ fi
 
 old="$(rg -oNr '$1' '^\s*Endpoint\s*=\s*(bg[0-9]+)\.nordvpn\.com' "$file" | head -n 1)"
 
-# $new is the least loaded NordVPN WireGuard server in the country - jq magic.
+# $oldkey is the server public key in use, from the PublicKey line.
 
-new="$(curl $curl_opts "https://api.nordvpn.com/v1/servers?filters\[servers_technologies\]\[identifier\]=wireguard_udp&filters\[country_id\]=${country_id}&limit=16" | jq --raw-output 'sort_by(.load) | .[0].hostname // empty' | cut -d '.' -f 1)"
+oldkey="$(rg -oNr '$1' '^\s*PublicKey\s*=\s*(\S+)' "$file" | head -n 1)"
+
+# $new is the least loaded NordVPN WireGuard server in the country and
+# $newkey its WireGuard public key, both from the same API answer - jq magic.
+
+best="$(curl $curl_opts "https://api.nordvpn.com/v1/servers?filters\[servers_technologies\]\[identifier\]=wireguard_udp&filters\[country_id\]=${country_id}&limit=16" | jq --raw-output 'sort_by(.load) | .[0] // empty | "\(.hostname) \([.technologies[]?.metadata[]? | select(.name == "public_key") | .value][0] // "")"')"
+new="${${best%% *}%%.*}"
+newkey="${best#* }"
 
 printf 'CURRENT IP IS: %s\n' "$(curl $curl_opts checkip.amazonaws.com)"
 
@@ -53,11 +61,22 @@ if [[ ! "$new" =~ '^bg[0-9]+$' ]]; then
 	exit 1
 fi
 
+# A WireGuard public key is 32 bytes in base64: 43 characters plus "=".
+if [[ ! "$newkey" =~ '^[A-Za-z0-9+/]{43}=$' ]]; then
+	printf 'No valid public key for %s in the NordVPN API answer, no changes will be made.\n' "$new"
+	exit 1
+fi
+
 # If there is a less loaded (better) server - use it, else do nothing.
 
-if [[ "$old" != "$new" ]]; then
-	sed -i -E "s/^(\s*Endpoint\s*=\s*)${old}\.nordvpn\.com/\1${new}.nordvpn.com/" "$file"
-	printf 'Changing server %s with the less loaded server %s.\n' "$old" "$new"
+if [[ "$old" != "$new" || "$oldkey" != "$newkey" ]]; then
+	sed -i -E -e "s/^(\s*Endpoint\s*=\s*)${old}\.nordvpn\.com/\1${new}.nordvpn.com/" \
+		-e "s|^(\s*PublicKey\s*=\s*).*|\1${newkey}|" "$file"
+	if [[ "$old" != "$new" ]]; then
+		printf 'Changing server %s with the less loaded server %s.\n' "$old" "$new"
+	else
+		printf 'Server %s is still the best, updating its public key.\n' "$new"
+	fi
 	if ! systemctl restart wg-quick@bg; then
 		printf 'Restarting wg-quick@bg failed, check: systemctl status wg-quick@bg\n'
 		exit 1
