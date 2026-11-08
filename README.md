@@ -43,7 +43,7 @@ the typical bash scripting standards:
 | nordvpn/bg.conf | - | - | template WireGuard config for SERVER-SWITCHER |
 | openwrt/ruter-upgrade | zsh | build machine | builds x86 OpenWrt and sysupgrades the router over ssh |
 | restic-backup/BACKUP-SCRIPT | zsh | desktop | restic backup to a google-drive-ocamlfuse mount |
-| roborock/* | zsh / bash | desktop / vacuum | music and radio on a rooted Roborock, see roborock/Readme.txt |
+| roborock/* | zsh / sh | desktop / vacuum | music and radio on a rooted Roborock, see roborock/Readme.txt |
 | system/IP-INFO | zsh | any | LAN and public IP |
 | system/bulk-apk-installer.sh | zsh | desktop | adb install of every apk in the current directory tree |
 | system/hugepages.sh | bash | any | transparent hugepages count and size |

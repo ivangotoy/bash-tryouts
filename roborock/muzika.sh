@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 #
 # Ivan Angelov ivangotoy@gmail.com
 # https://digtvbg.com/

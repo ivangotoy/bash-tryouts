@@ -32,7 +32,7 @@ For online radios:
 - radio.m3u - list of online radios direct streaming links (preferably mp3)
 - radio.sh - shuffles the links in radio.m3u and plays the 1st that comes
 
-muzika.sh and radio.sh run on the device: they need bash, sox (play) and
+muzika.sh and radio.sh run on the device: they need a POSIX sh, sox (play) and
 busybox in /root/bin/busybox there, and must be executable:
 
 scp muzika.sh radio.sh robo:/mnt/data/muzika/
