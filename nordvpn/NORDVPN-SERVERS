@@ -6,7 +6,7 @@
 # Tooling used: zsh, curl, jq, and column
 #
 # This script does these things:
-# 
+#
 # Shows a list of country to number mappings for NORDVPN
 #
 # Asks the user to select a number
@@ -17,19 +17,25 @@
 
 export LC_ALL=C
 export LANG=C
+setopt pipefail
+
+limit=20
+curl_opts=(--tlsv1.3 --silent --show-error --fail --compressed -4)
 
 # Show countries:
-printf "AVAILABLE COUNTRIES + THEIR NUMERIC CODES:\n"
-printf "#########################################:\n"
-curl  --tlsv1.3 --silent --compressed -4 --dns-ipv4-addr 192.168.1.1 --http2 --parallel --parallel-immediate --sasl-ir "https://api.nordvpn.com/v1/servers/countries" | jq --raw-output '.[] | [.id, .name] | @tsv' | column -c 70
+printf 'AVAILABLE COUNTRIES + THEIR NUMERIC CODES:\n'
+printf '#########################################:\n'
+if ! curl $curl_opts "https://api.nordvpn.com/v1/servers/countries" | jq --raw-output '.[] | [.id, .name] | @tsv' | column -c 70; then
+	printf 'Could not get the country list from the NordVPN API.\n' >&2
+	exit 1
+fi
 
-printf "PLEASE ENTER YOUR DESIRED COUNTRY NUMERIC CODE AND PRESS ENTER:\n"
-read;
-# $REPLY IS THE NUMBER
+printf 'PLEASE ENTER YOUR DESIRED COUNTRY NUMERIC CODE AND PRESS ENTER:\n'
+read -r country_id
 
-printf "HERE ARE THE WIREGUARD SERVERS FROM COUNTRY ID "${REPLY}" SORTED BY LOAD:\n"
+printf 'HERE ARE THE WIREGUARD SERVERS FROM COUNTRY ID %s SORTED BY LOAD:\n' "$country_id"
 
-LIST="$(curl  --tlsv1.3 --silent --compressed -4 --dns-ipv4-addr 192.168.1.1 --http2 --parallel --parallel-immediate --sasl-ir "https://api.nordvpn.com/v1/servers?filters\[servers_technologies\]\[identifier\]=wireguard_udp&filters\[country_id\]="$REPLY"&limit=20" | jq --raw-output --slurp ' .[] | sort_by(.load) | limit(20;.[]) | [.hostname, .station, (.technologies|.[].metadata|.[].value), .load] | "\(.[0])  \(.[1])  \(.[2])  \(.[3])"')"
+LIST="$(curl $curl_opts "https://api.nordvpn.com/v1/servers?filters\[servers_technologies\]\[identifier\]=wireguard_udp&filters\[country_id\]=${country_id}&limit=${limit}" | jq --raw-output --argjson limit "$limit" 'sort_by(.load) | limit($limit; .[]) | [.hostname, .station, (.technologies | .[].metadata | .[].value), .load] | "\(.[0])  \(.[1])  \(.[2])  \(.[3])"')"
 
-printf "HOST IP PUBKEY LOAD\n "$LIST"" | column -tW 3
-printf "PORT NUMBER IS ALWAYS: 51820\n"
+printf 'HOST IP PUBKEY LOAD\n%s\n' "$LIST" | column -tW 3
+printf 'PORT NUMBER IS ALWAYS: 51820\n'

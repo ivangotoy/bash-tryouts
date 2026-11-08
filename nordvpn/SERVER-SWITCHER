@@ -3,56 +3,66 @@
 # Ivan Angelov ivangotoy@gmail.com
 # https://digtvbg.com/
 #
-# Tooling used: zsh, curl, jq, sed, rg
+# Tooling used: zsh, curl, jq, sed, rg, systemctl
 #
-# Wireguard should be properly configured with a valid/paid account pubkey.
+# Switches the WireGuard tunnel to the least loaded NordVPN server in
+# Bulgaria (country id 33) when the one in use is no longer the best.
 #
-# /etc/wireguard/bg.conf is where this info resides in our case
-# 
-# so that wg-quick@bg is a valid string - read below
-#
+# WireGuard should be properly configured with a valid/paid account key:
+# /etc/wireguard/bg.conf (see bg.conf in this directory) is managed by
+# wg-quick@bg, and its "Endpoint = bgNN.nordvpn.com:51820" line is what
+# this script edits.
+
 export LC_ALL=C
 export LANG=C
+setopt pipefail
+
+file="/etc/wireguard/bg.conf"
+country_id=33
+curl_opts=(--tlsv1.3 --silent --show-error --fail --compressed -4)
 
 # CHECK ROOT ACCESS:
 
 if [[ "$EUID" -ne 0 ]]; then
-printf "This script must be run as root!\n" 
-exit 1
+	printf 'This script must be run as root!\n'
+	exit 1
 fi
 
-# DEFINE 3 MAIN VARIABLES:
-# var 1 $file is the config file to check/edit and play with:
-
-file="/etc/wireguard/bg.conf"
-
-if [[ ! -f "$file" ]];
-then
-printf "Config file "$file" could not be found, please investigate!\n"
-exit 1
+if [[ ! -f "$file" ]]; then
+	printf 'Config file %s could not be found, please investigate!\n' "$file"
+	exit 1
 fi
-	
-# var 2 $old is the current NORDVPN server notation e.g. "bg50" used by the system:
 
-old="$(rg -oN "bg[3-5][0-9]" "$file")"
+# $old is the NordVPN server in use, e.g. "bg50", taken from the Endpoint line.
 
-# var 3 $new is the least loaded NORDVPN server in Bulgaria (country id 33) - jq magic
+old="$(rg -oNr '$1' '^\s*Endpoint\s*=\s*(bg[0-9]+)\.nordvpn\.com' "$file" | head -n 1)"
 
-new="$(curl  --tlsv1.3 --silent --compressed -4 --dns-ipv4-addr 192.168.1.1 --http2 --parallel --parallel-immediate --sasl-ir "https://api.nordvpn.com/v1/servers?filters\[servers_technologies\]\[identifier\]=wireguard_udp&filters\[country_id\]=33&limit=16" | jq --raw-output --slurp ' .[] | sort_by(.load) | limit(16;.[]) | [.hostname, .load] | "\(.[0])  \(.[1]) "' | head -1 | cut -d "." -f 1)"
+# $new is the least loaded NordVPN WireGuard server in the country - jq magic.
 
-# SHOW CURRENT EXTERNAL IP:
+new="$(curl $curl_opts "https://api.nordvpn.com/v1/servers?filters\[servers_technologies\]\[identifier\]=wireguard_udp&filters\[country_id\]=${country_id}&limit=16" | jq --raw-output 'sort_by(.load) | .[0].hostname // empty' | cut -d '.' -f 1)"
 
-printf "CURRENT IP IS: "$(curl  --tlsv1.3 --silent --compressed -4 --dns-ipv4-addr 192.168.1.1 --http2 --parallel --parallel-immediate --sasl-ir checkip.amazonaws.com)"\n"
+printf 'CURRENT IP IS: %s\n' "$(curl $curl_opts checkip.amazonaws.com)"
 
-# NOW LET'S CHECK IF THE CURRENT SERVER IS STILL THE LEAST LOADED IN THE GROUP.
-# IF THERE IS A LESS LOADED (BETTER) SERVER - USE IT, ELSE DO NOTHING.
+if [[ ! "$old" =~ '^bg[0-9]+$' ]]; then
+	printf 'No bgNN.nordvpn.com Endpoint found in %s, no changes will be made.\n' "$file"
+	exit 1
+fi
 
-if [[ ! -z "$old" ]] && [[ "${#old}" == 4 ]] && [[ "$old" != "$new" ]];
-then
-sed -i "s/"$old"/"$new"/g" "$file"
-printf "Changing server "$old" with the less loaded server "$new".\n"
-systemctl restart wg-quick@bg
+if [[ ! "$new" =~ '^bg[0-9]+$' ]]; then
+	printf 'Could not get the least loaded server from the NordVPN API, no changes will be made.\n'
+	exit 1
+fi
+
+# If there is a less loaded (better) server - use it, else do nothing.
+
+if [[ "$old" != "$new" ]]; then
+	sed -i -E "s/^(\s*Endpoint\s*=\s*)${old}\.nordvpn\.com/\1${new}.nordvpn.com/" "$file"
+	printf 'Changing server %s with the less loaded server %s.\n' "$old" "$new"
+	if ! systemctl restart wg-quick@bg; then
+		printf 'Restarting wg-quick@bg failed, check: systemctl status wg-quick@bg\n'
+		exit 1
+	fi
 else
-printf "Server "$old" is still the best in the group no changes will be made.\n"
+	printf 'Server %s is still the best in the group no changes will be made.\n' "$old"
 fi
-printf "NEW IP IS: "$(curl  --tlsv1.3 --silent --compressed -4 --dns-ipv4-addr 192.168.1.1 --http2 --parallel --parallel-immediate --sasl-ir checkip.amazonaws.com)"\n"
+printf 'NEW IP IS: %s\n' "$(curl $curl_opts checkip.amazonaws.com)"

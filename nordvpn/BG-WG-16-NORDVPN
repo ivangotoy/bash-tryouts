@@ -5,19 +5,29 @@
 #
 # Tooling used: zsh, curl, jq, and column
 #
-# This script does these things:
-#
-# 1. Sends a curl request to the nordvpn api server asking for:
-# - servers using only: wireguard vpn protocol, from Bulgaria, output limited to 16 intances, sorted by load.
-#
-# - Prints the output on-screen in a bit columnized way
+# Asks the NordVPN API for servers that support the WireGuard protocol,
+# from Bulgaria (country id 33), up to 16 of them, sorted by load,
+# and prints them in columns: hostname, IP address, public key, load.
 
 export LC_ALL=C
 export LANG=C
+setopt pipefail
 
-red=$(tput setaf 1)
-green=$(tput setaf 2)
-normal=$(tput sgr0)
+country_id=33
+limit=16
+api="https://api.nordvpn.com/v1/servers?filters\[servers_technologies\]\[identifier\]=wireguard_udp&filters\[country_id\]=${country_id}&limit=${limit}"
 
-printf "%0s\n ${red}HOSTNAME: IP-ADDRESS: PUBLIC-KEY: LOAD:${normal}  %0s\n %0s\n "${green}"$(curl --tlsv1.3 --silent --compressed -4 --dns-ipv4-addr 192.168.1.1 --http2 --parallel --parallel-immediate --sasl-ir "https://api.nordvpn.com/v1/servers?filters\[servers_technologies\]\[identifier\]=wireguard_udp&filters\[country_id\]=33&limit=16" | jq --raw-output --slurp ' .[] | sort_by(.load) | limit(16;.[]) | [.hostname, .station, (.technologies|.[].metadata|.[].value), .load] | "\(.[0])  \(.[1]) \(.[2]) \(.[3])"')"${normal}"" | column -tL
-printf "\nPORT NUMBER IS ALWAYS: 51820\n"
+red=$(tput setaf 1 2>/dev/null)
+green=$(tput setaf 2 2>/dev/null)
+normal=$(tput sgr0 2>/dev/null)
+
+if ! servers="$(curl --tlsv1.3 --silent --show-error --fail --compressed -4 "$api" | jq --raw-output --argjson limit "$limit" 'sort_by(.load) | limit($limit; .[]) | [.hostname, .station, (.technologies | .[].metadata | .[].value), .load] | "\(.[0]) \(.[1]) \(.[2]) \(.[3])"')" || [[ -z "$servers" ]]; then
+	printf 'Could not get the server list from the NordVPN API.\n' >&2
+	exit 1
+fi
+
+{
+	printf '%sHOSTNAME: IP-ADDRESS: PUBLIC-KEY: LOAD:%s\n' "$red" "$normal"
+	printf '%s%s%s\n' "$green" "$servers" "$normal"
+} | column -t
+printf '\nPORT NUMBER IS ALWAYS: 51820\n'
