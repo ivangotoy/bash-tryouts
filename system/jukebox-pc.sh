@@ -3,7 +3,7 @@
 # Ivan Angelov ivangotoy@gmail.com
 # https://digtvbg.com/
 #
-# youtube-dl is needed :)
+# yt-dlp is needed :)
 #
 # paplay from PulseAudio is used too.
 #
@@ -15,7 +15,7 @@ dir="/home/$USER/Downloads"
 baseurl="https://youtu.be/"
 params=(--geo-bypass --quiet -4 -x --audio-format wav)
 
-for tool in youtube-dl paplay; do
+for tool in yt-dlp paplay; do
 	if ! command -v "$tool" >/dev/null 2>&1; then
 		printf '%s not found, please install it.\n' "$tool"
 		exit 1
@@ -30,7 +30,7 @@ if [[ ! "$video" =~ ^[A-Za-z0-9_-]+$ ]]; then
 fi
 
 cd "$dir" || exit 1
-youtube-dl "${params[@]}" "${baseurl}${video}" || exit 1
+yt-dlp "${params[@]}" "${baseurl}${video}" || exit 1
 
 file=$(find . -maxdepth 1 -name "*${video}.wav" -print -quit)
 if [[ -z "$file" ]]; then

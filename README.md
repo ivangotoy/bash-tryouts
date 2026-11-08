@@ -47,7 +47,7 @@ the typical bash scripting standards:
 | system/IP-INFO | zsh | any | LAN and public IP |
 | system/bulk-apk-installer.sh | zsh | desktop | adb install of every apk in the current directory tree |
 | system/hugepages.sh | bash | any | transparent hugepages count and size |
-| system/jukebox-pc.sh | bash | desktop | plays the audio of a YouTube video (youtube-dl, paplay) |
+| system/jukebox-pc.sh | bash | desktop | plays the audio of a YouTube video (yt-dlp, paplay) |
 | system/nvme-disks-temperatures | bash | any, root | NVMe temperatures (nvme-cli) |
 | system/odroid-cpu-temp.sh | bash | ODROID N2 | CPU cluster temperatures |
 | system/stats.sh | zsh | any | memory, disk and load summary |
