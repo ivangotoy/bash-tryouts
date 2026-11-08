@@ -3,70 +3,93 @@
 # Ivan Angelov ivangotoy@gmail.com
 # https://digtvbg.com/
 #
-# This is a hastily written script that "might" update x86 openwrt images
+# This is a hastily written script that "might" update x86 openwrt images.
+# It runs on the build machine (zsh), not on the router; the only command
+# sent to the router is a plain POSIX sysupgrade call over ssh.
+#
 # Assumptions:
-# - ssh paswordless login to openwrt router works correctly for the account building OpenWrt.
+# - ssh passwordless login to the openwrt router (ssh host alias "router")
+#   works for the account building OpenWrt.
 # - wget; zsh; openwrt git source tree in ~/Downloads/openwrt - have some common sense bout those.
-# - variables defined but not used many times - future ideas for extending the script will reuse them for sure.
 # - variables defined in CAPS which are not system vars are a sign of bad taste or good times with guns.
 
-# Some timing details ( for my personal use - benchmarking various cpus and setups, irrelevant for fw updates)
+# Timing details (for my personal use - benchmarking various cpus and setups, irrelevant for fw updates)
 
 START=$(date +%s)
-FIRMWARE="/home/$USER/Downloads/openwrt/bin/targets/x86/64/openwrt-x86-64-generic-ext4-combined.img"
-TMP="router:/tmp/"
 OPENWRT="/home/$USER/Downloads/openwrt"
-if wget -q --tries=10 --timeout=1 --spider https://google.bg;
-then
-printf "$(date +"%Hh:%Mm:%Ss") There is Internet!\n\n"
+IMAGE="openwrt-x86-64-generic-ext4-combined.img"
+FIRMWARE="$OPENWRT/bin/targets/x86/64/$IMAGE"
+ROUTER="router"
+JOBS=20
+
+say() {
+	printf '%s %s\n\n' "$(date +"%Hh:%Mm:%Ss")" "$1"
+}
+
+online() {
+	local try
+	for try in {1..$1}; do
+		wget -q --timeout=1 --spider https://google.bg && return 0
+		sleep 1
+	done
+	return 1
+}
+
+if online 10; then
+	say "There is Internet!"
 else
-printf "$(date +"%Hh:%Mm:%Ss") No internet! Cannot continue!\n"
-exit 1
+	say "No internet! Cannot continue!"
+	exit 1
 fi
 
 # UPDATE, CLEAN FIRMWARE AND BUILD A NEW ONE:
 
-cd $OPENWRT
-printf "$(date +"%Hh:%Mm:%Ss") Updating sources...\n\n"
-git pull &>/dev/null
-./scripts/feeds update -a &>/dev/null
-./scripts/feeds install -a &>/dev/null
-printf "$(date +"%Hh:%Mm:%Ss") Cleaning previous build...\n\n"
+cd "$OPENWRT" || { say "No OpenWrt source tree in $OPENWRT! Cannot continue!"; exit 1; }
+say "Updating sources..."
+if ! { git pull && ./scripts/feeds update -a && ./scripts/feeds install -a } &>/dev/null; then
+	say "WARNING: updating sources failed, building what is there."
+fi
+say "Cleaning previous build..."
 make clean &>/dev/null
-printf "$(date +"%Hh:%Mm:%Ss") Building firmware. This will take some time...\n\n"
 
-# Runs make with 20 jobs - adjust 20 to the real number of cpu threads.
+# Runs make with $JOBS jobs - adjust JOBS to the real number of cpu threads.
 
-printf "Bulding now, this will take some time. And cpu cycles... and ram."
-
-make -j20 &> /dev/null
-sync &> /dev/null
-printf "$(date +"%Hh:%Mm:%Ss") Done building, let's flash it.\n\n"
+say "Building firmware. This will take some time. And cpu cycles... and ram."
+if ! make -j"$JOBS" &>/dev/null; then
+	say "BUILD ERROR! Run make -j1 V=s in $OPENWRT to see why."
+	exit 1
+fi
+sync &>/dev/null
 
 # CHECK FOR THE NEWLY BUILT FIRMWARE FILE:
 
 if [[ ! -f "$FIRMWARE" ]]; then
-printf "$(date +"%Hh:%Mm:%Ss") NO FIRMWARE FILE FOUND - BUILD ERROR!\n\n"
-exit 1
+	say "NO FIRMWARE FILE FOUND - BUILD ERROR!"
+	exit 1
+fi
+say "Done building, let's flash it."
+
+if ! scp "$FIRMWARE" "$ROUTER:/tmp/" &>/dev/null; then
+	say "Copying firmware to $ROUTER failed! Nothing flashed."
+	exit 1
 fi
 
-scp "$FIRMWARE" "$TMP" &> /dev/null
-ssh router 'sysupgrade -q /tmp/openwrt-x86-64-generic-ext4-combined.img' &> /dev/null
+# The router reboots during sysupgrade, so the ssh exit status is meaningless.
+ssh "$ROUTER" "sysupgrade -q /tmp/$IMAGE" &>/dev/null
 
 sleep 15
 
-if wget -q --tries=20 --timeout=1 --spider https://google.bg;
-then
-printf "$(date +"%Hh:%Mm:%Ss") Router is back online!\n\n"
+if online 20; then
+	say "Router is back online!"
+	rc=0
 else
-sleep 5
-printf "$(date +"%Hh:%Mm:%Ss") Check your internet connection!\n\n"
+	say "Check your internet connection!"
+	rc=1
 fi
 
 END=$(date +%s)
-RUNTIME=$((END-START))
-printf "$(date +"%Hh:%Mm:%Ss") Upgrade took: $RUNTIME seconds\n\n"
-printf "Which means:\n\n"
-printf "$RUNTIME/60\n" | bc | tr -d '\n' ; printf " minutes\n"
+RUNTIME=$((END - START))
+say "Upgrade took: $RUNTIME seconds"
+printf 'Which means:\n\n%d minutes\n' $((RUNTIME / 60))
 
-exit 0
+exit $rc
