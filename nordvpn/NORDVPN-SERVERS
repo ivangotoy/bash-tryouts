@@ -13,7 +13,8 @@
 #
 # Pulls valuable details for the country represented by the selected number.
 #
-# Any anonymous aliexpress trader would not care if the number was valid so do we :)
+# The number must be a numeric country ID from the list, anything else is a
+# usage error.
 
 export LC_ALL=C
 export LANG=C
@@ -32,6 +33,10 @@ fi
 
 printf 'PLEASE ENTER YOUR DESIRED COUNTRY NUMERIC CODE AND PRESS ENTER:\n'
 read -r country_id
+if [[ ! "$country_id" =~ '^[0-9]+$' ]]; then
+	printf 'Usage: enter one of the numeric country IDs listed above, got "%s".\n' "$country_id" >&2
+	exit 2
+fi
 
 printf 'HERE ARE THE WIREGUARD SERVERS FROM COUNTRY ID %s SORTED BY LOAD:\n' "$country_id"
 
