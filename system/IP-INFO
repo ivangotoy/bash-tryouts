@@ -9,7 +9,7 @@
 # - zsh
 # - ip
 # - rg
-# - curl
+# - curl (each call gives up after 5 seconds, so an offline login does not hang)
 # Let's begin with just one empty line for starters.
 
 printf '\n'
@@ -24,7 +24,7 @@ printf '\n'
 
 # Public IP
 
-printf 'MY PUBLIC IP IS: '; curl --tlsv1.3 --silent --compressed -4 checkip.amazonaws.com
+printf 'MY PUBLIC IP IS: '; curl --max-time 5 --tlsv1.3 --silent --compressed -4 checkip.amazonaws.com
 
 # The last empty line for the best placement of data on the terminal.
 
