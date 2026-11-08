@@ -10,8 +10,10 @@
 # radio.m3u is basically a list of desired online radios http streaming links one per line.
 # Invoking radio.sh every time plays different station (shuffling of entries).
 
-/root/bin/busybox killall -9 sox;
+dir=/mnt/data/muzika
 
-/root/bin/busybox shuf /mnt/data/muzika/radio.m3u > /mnt/data/muzika/test1.m3u;
+/root/bin/busybox killall -9 sox 2>/dev/null
 
-nohup play /mnt/data/muzika/test1.m3u
+/root/bin/busybox shuf "$dir/radio.m3u" > "$dir/test1.m3u"
+
+nohup play "$dir/test1.m3u"
