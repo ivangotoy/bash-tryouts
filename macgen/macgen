@@ -4,61 +4,62 @@
 #
 # https://digtvbg.com/
 #
-# Script for generating all the 16 million valic mac addresses - suitable for:
+# Generates all 16.7 million (16^6) MAC addresses for a given 3 byte
+# device prefix (OUI), shuffled and uppercase, into one file (colons in the
+# prefix become dashes in the file name), and optionally splits that file
+# into smaller parts.
 #
-# hmmm... educational purposes only and definitely not for device spoofing/scanning endeavors.
+# Educational purposes only, definitely not for device spoofing/scanning endeavors.
+#
+# Needs: zsh, shuf, tr, split (GNU coreutils for --numeric-suffixes).
 
 export LC_ALL=C
 export LANG=C
 
-printf "Example device prefix is: 00:1A:79: or 78:A3:52: which is 9 symbols.\n\nProvide 9 symbols prefix:\n\n"
+printf 'Example device prefix is: 00:1A:79: or 78:A3:52: which is 9 symbols.\n\nProvide 9 symbols prefix:\n\n'
 
-read PREFIX
+read -r PREFIX
 
-if [ ${#PREFIX} -ne 9 ]; then
-printf "Device prefix not 9 symbols.\n\nExitting now.\n"
-exit 1
+if [[ ! "$PREFIX" =~ '^([0-9A-Fa-f]{2}:){3}$' ]]; then
+	printf 'Device prefix must look like 00:1A:79: (3 hex bytes, each followed by a colon).\n\nExiting now.\n'
+	exit 1
 fi
 
 start=$(date +%s)
 
-printf "Selected device prefix is $PREFIX\n\nPlease, wait a sec...\n\n"
-printf "%s\n" "$PREFIX"{0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f}{0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f}:{0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f}{0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f}:{0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f}{0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f} | shuf > "${PREFIX}all-macs-16M.txt"
+hex=({0..9} {a..f})
 BIGFILE="${PREFIX}all-macs-16M.txt"
-printf "To uppercase."
-tr '[:lower:]' '[:upper:]' < "$BIGFILE" > "${BIGFILE}.upper"
-mv "${BIGFILE}.upper" "$BIGFILE"
 WORDLIST="${BIGFILE//:/-}"
-mv $BIGFILE $WORDLIST
-end=$(date +%s)
-runtime=$((end-start))
-printf "16 MILLION MACs GENERATED AND RANDOMIZED FOR: $runtime SECONDS!\n\nYou can find them in $WORDLIST\n\n"
+PARTPREFIX="${PREFIX//:/-}"
 
-printf "Continue with splitting the big file?\n\n"1" for yes, "2" for no:\n\n"
+printf 'Selected device prefix is %s\n\nPlease, wait a sec...\n\n' "$PREFIX"
+printf '%s\n' "$PREFIX"${^hex}${^hex}:${^hex}${^hex}:${^hex}${^hex} | shuf | tr '[:lower:]' '[:upper:]' > "$WORDLIST" || exit 1
+
+end=$(date +%s)
+runtime=$((end - start))
+printf '16 MILLION MACs GENERATED AND RANDOMIZED FOR: %s SECONDS!\n\nYou can find them in %s\n\n' "$runtime" "$WORDLIST"
+
+printf 'Continue with splitting the big file?\n\n"1" for yes, "2" for no:\n\n'
 
 select answer in "Yes" "No"; do
-case $answer in
-Yes) printf "How to split the 16M macs file?\n\nValid choices are:\n\n1) for 500k macs per file\n\n2) for 1M macs per file\n\n3) for 256k macs per file\n\nSelect 1 2 or 3 - other value for exit:\n"
-read split
-if [[ $split == 1 ]]; then
-printf "Splitting $WORDLIST to smaller 500k lines each.\n"
-split -l 500000 -a 2 --numeric-suffixes=1 "$WORDLIST" "${PREFIX//:/-}500kPART" --additional-suffix=.txt
-elif [[ $split == 2 ]]; then
-printf "Splitting $WORDLIST
-to smaller 1M lines each.\n"
-split -l 1000000 -a 2 --numeric-suffixes=1 "$WORDLIST" "${PREFIX//:/-}1mPART" --additional-suffix=.txt
-elif [[ $split == 3 ]]; then
-printf "Splitting $BIGFILE to smaller 256k lines each.\n"
-split -l 256000 -a 2 --numeric-suffixes=1 "$WORDLIST" "${PREFIX//:/-}256kPART" --additional-suffix=.txt
-else
-printf "Exitting now.\n\nBye!\n"
-fi
-break;;
-No)
-printf 'Exitting now.\n'
-  exit 0 ;;
-*)
-printf "I guess 1 or 2 were too confusing.\n\nExitting now.\n"
-exit 0 ;;
-    esac
+	case $answer in
+		Yes)
+			printf 'How to split the 16M macs file?\n\nValid choices are:\n\n1) for 500k macs per file\n\n2) for 1M macs per file\n\n3) for 256k macs per file\n\nSelect 1 2 or 3 - other value for exit:\n'
+			read -r choice
+			case $choice in
+				1) lines=500000 ; tag=500k ; label=500k ;;
+				2) lines=1000000 ; tag=1m ; label=1M ;;
+				3) lines=256000 ; tag=256k ; label=256k ;;
+				*) printf 'Exiting now.\n\nBye!\n' ; exit 0 ;;
+			esac
+			printf 'Splitting %s to smaller %s lines each.\n' "$WORDLIST" "$label"
+			split -l "$lines" -a 2 --numeric-suffixes=1 --additional-suffix=.txt "$WORDLIST" "${PARTPREFIX}${tag}PART"
+			break ;;
+		No)
+			printf 'Exiting now.\n'
+			exit 0 ;;
+		*)
+			printf 'I guess 1 or 2 were too confusing.\n\nExiting now.\n'
+			exit 0 ;;
+	esac
 done
