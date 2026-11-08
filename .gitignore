@@ -1,24 +1,13 @@
-# Composer files
-composer.phar
-vendor/
+# Editor swap and backup files
+*.swp
+*.swo
+*~
+.*.un~
 
-# Local configs
-config/autoload/*.local.php
+# Logs
+*.log
 
-# Binary gettext files
-*.mo
-
-# Data
-data/logs/
-data/cache/
-data/sessions/
-data/tmp/
-temp/
-
-#Doctrine 2
-data/DoctrineORMModule/Proxy/
-data/DoctrineORMModule/cache/
-
-# Legacy ZF1
-demos/
-extras/documentation
+# Local WireGuard configs that may hold a real private key.
+# nordvpn/bg.conf is the tracked placeholder template.
+*.conf
+!nordvpn/bg.conf
