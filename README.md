@@ -54,6 +54,12 @@ the typical bash scripting standards:
 | tools/lint.sh | bash | any | syntax check and shellcheck for the scripts, see Linting and testing |
 | tests/run.sh | bash | any | regression tests with stub commands, see Linting and testing |
 
+Log size limits (each script trims its own log after writing, keeping the
+newest lines; no logrotate needed):
+
+- cron/blacklist.sh: ~/blacklist/status keeps its last 1000 lines.
+- cron/UPDATE-WAF-CORERULESETS-CRONJOB: /var/log/coreruleset-updates.log keeps its last 1000 lines.
+
 ## Linting and testing
 
     tools/lint.sh             # every tracked script

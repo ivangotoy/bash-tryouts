@@ -26,7 +26,8 @@
 # Every run rebuilds the set from the current access.log and saves it to
 # ~/blacklist/ipsets.conf, loads it into the temporary sets blacklist-new
 # and blacklist6-new and swaps those with the live sets (no moment without
-# bans); ~/blacklist/status gets one line per run.
+# bans); ~/blacklist/status gets one line per run and keeps its newest
+# 1000 lines.
 
 export LC_ALL=C
 export LANG=C
@@ -122,10 +123,31 @@ destroy_new() {
 	ipset -q destroy blacklist6-new &>/dev/null
 }
 
+# trim_log FILE MAX: keep only the newest MAX lines of FILE. Written to a
+# temp file in the same directory and moved over FILE (atomic, same mode);
+# on any failure the temp file is removed and FILE stays as it was.
+trim_log() {
+	local file="$1" max="$2" tmp
+	[[ -f "$file" ]] && (( $(wc -l < "$file") > max )) || return 0
+	if tmp="$(mktemp "$file.XXXXXX")" && tail -n "$max" "$file" > "$tmp" &&
+		chmod --reference="$file" "$tmp" && mv -f "$tmp" "$file"; then
+		return 0
+	fi
+	[[ -n "$tmp" ]] && rm -f "$tmp"
+	printf 'Could not trim %s to its last %s lines, left as it was.\n' "$file" "$max" >&2
+	return 1
+}
+
+# status_line TEXT: one line in ~/blacklist/status, which keeps its newest 1000 lines.
+status_line() {
+	printf 'Cron blacklisting status %s - %s\n' "$1" "$(date)" >> "$statedir/status"
+	trim_log "$statedir/status" 1000
+}
+
 # fail STEP: drop the temporary sets, log FAILED, exit 1.
 fail() {
 	destroy_new
-	printf 'Cron blacklisting status FAILED (%s) - %s\n' "$1" "$(date)" >> "$statedir/status"
+	status_line "FAILED ($1)"
 	printf 'Updating the ban lists failed at %s, the live sets were not changed. Check: ipset list blacklist blacklist6\n' "$1" >&2
 	exit 1
 }
@@ -143,6 +165,6 @@ if ! ipset -q swap blacklist6-new blacklist6 &>/dev/null; then
 fi
 destroy_new
 
-printf 'Cron blacklisting status OK - %s\n' "$(date)" >> "$statedir/status"
+status_line OK
 
 exit 0

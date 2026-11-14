@@ -84,4 +84,32 @@ run_waf 0
 check 'old log is a directory: left alone' test -d "$oldlog"
 rm -rf "$olddir"
 
+# The log keeps its newest 1000 lines (trimmed after the write, via a temp
+# file and mv; a failed trim leaves the file and no temp file).
+stub mv-fail 'exit 1'
+log_case() {
+	for ((i = 1; i <= $1; i++)); do printf 'old entry %d\n' "$i"; done > "$logfile"
+	cp "$logfile" "$WORK/log.before"
+	LOG="$WORK/log" "$ZSH_BIN" "$script" > "$WORK/out" 2>&1
+}
+temps() { count_existing "$WORK"/coreruleset-updates.txt.*; }
+log_case 1500
+check 'log over limit: exactly 1000 lines' test "$(wc -l < "$logfile")" -eq 1000
+check 'log over limit: newest 998 old lines kept' \
+	test "$(head -n 998 "$logfile")" = "$(tail -n 998 "$WORK/log.before")"
+check 'log over limit: the entry just written ends it' grep -q 'Coreruleset updated from git' <(tail -n 2 "$logfile")
+check 'log over limit: no temp file' test "$(temps)" = 0
+
+log_case 10
+check 'log under limit: old bytes unchanged, entry appended' \
+	test "$(head -n 10 "$logfile")" = "$(cat "$WORK/log.before")" -a "$(wc -l < "$logfile")" -eq 12
+
+ln -s "$STUBS/mv-fail" "$STUBS/mv"
+log_case 1500
+rm -f "$STUBS/mv"
+check 'log trim fails: file intact (old lines + entry)' \
+	test "$(head -n 1500 "$logfile")" = "$(cat "$WORK/log.before")" -a "$(wc -l < "$logfile")" -eq 1502
+check 'log trim fails: no temp file' test "$(temps)" = 0
+check 'log trim fails: warning' grep -q 'Could not trim' "$WORK/out"
+
 done_testing

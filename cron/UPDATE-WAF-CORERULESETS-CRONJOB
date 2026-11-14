@@ -15,8 +15,25 @@ repo="/etc/nginx/modsec/coreruleset/"
 # Root-only (root crontab), so the log has a fixed absolute path.
 logfile="/var/log/coreruleset-updates.log"
 
+# trim_log FILE MAX: keep only the newest MAX lines of FILE. Written to a
+# temp file in the same directory and moved over FILE (atomic, same mode);
+# on any failure the temp file is removed and FILE stays as it was.
+trim_log() {
+	local file="$1" max="$2" tmp
+	[[ -f "$file" ]] && (( $(wc -l < "$file") > max )) || return 0
+	if tmp="$(mktemp "$file.XXXXXX")" && tail -n "$max" "$file" > "$tmp" &&
+		chmod --reference="$file" "$tmp" && mv -f "$tmp" "$file"; then
+		return 0
+	fi
+	[[ -n "$tmp" ]] && rm -f "$tmp"
+	printf 'Could not trim %s to its last %s lines, left as it was.\n' "$file" "$max" >&2
+	return 1
+}
+
+# The log keeps its newest 1000 lines.
 log() {
 	printf '%s %s\n\n' "$(date)" "$1" >> "$logfile"
+	trim_log "$logfile" 1000
 }
 
 # Until the log moved to /var/log it was written to the running user's home

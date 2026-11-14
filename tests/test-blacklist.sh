@@ -110,4 +110,34 @@ banned="$(sed -n 's/^add blacklist //p' "$state/ipsets.conf" | tr '\n' ' ')"
 check "patterns: banned set (got: $banned)" \
 	test "$banned" = '192.0.2.22 192.0.2.23 192.0.2.24 192.0.2.25 192.0.2.27 '
 
+# ~/blacklist/status keeps its newest 1000 lines (trimmed after the write,
+# via a temp file and mv; a failed trim leaves the file and no temp file).
+stub mv-fail 'exit 1'
+# (the patterns case above moved the shared copy away: make it again)
+script="$(patched cron/blacklist.sh "s|^log=\"/var/log/nginx/access.log\"|log=\"$fixtures/nginx-access.txt\"|")" || exit 1
+status_case() {
+	rm -f "$state/status"
+	for ((i = 1; i <= $1; i++)); do printf 'Cron blacklisting status OK - run %d\n' "$i"; done > "$state/status"
+	cp "$state/status" "$WORK/status.before"
+	run_blacklist env
+}
+status_case 1200
+check 'status over limit: exactly 1000 lines' test "$(wc -l < "$state/status")" -eq 1000
+check 'status over limit: newest 999 old lines kept' \
+	test "$(head -n 999 "$state/status")" = "$(tail -n 999 "$WORK/status.before")"
+check 'status over limit: the line just written is last' grep -q '^Cron blacklisting status OK - [A-Z]' <(tail -n 1 "$state/status")
+check 'status over limit: no temp file' test "$(count_existing "$state"/status.*)" = 0
+
+status_case 10
+check 'status under limit: old bytes unchanged, one line added' \
+	test "$(head -n 10 "$state/status")" = "$(cat "$WORK/status.before")" -a "$(wc -l < "$state/status")" -eq 11
+
+ln -s "$STUBS/mv-fail" "$STUBS/mv"
+status_case 1200
+rm -f "$STUBS/mv"
+check 'status trim fails: file intact (old lines + new line)' \
+	test "$(head -n 1200 "$state/status")" = "$(cat "$WORK/status.before")" -a "$(wc -l < "$state/status")" -eq 1201
+check 'status trim fails: no temp file' test "$(count_existing "$state"/status.*)" = 0
+check 'status trim fails: warning' grep -q 'Could not trim' "$WORK/out"
+
 done_testing

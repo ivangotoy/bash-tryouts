@@ -64,6 +64,15 @@ patched() {
 	printf '%s\n' "$dst"
 }
 
+# count_existing PATH...: how many of the (glob expanded) paths exist.
+count_existing() {
+	local n=0 f
+	for f in "$@"; do
+		[[ -e "$f" || -L "$f" ]] && n=$((n + 1))
+	done
+	printf '%d\n' "$n"
+}
+
 ok() { printf '  ok   %s\n' "$1"; }
 not_ok() { printf '  FAIL %s\n' "$1"; failures=$((failures + 1)); }
 
