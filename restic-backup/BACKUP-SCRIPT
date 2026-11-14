@@ -91,6 +91,20 @@ fail() {
 	exit 1
 }
 
+# interrupted STATUS: Ctrl-C (INT) or kill (TERM): unlock the repo and
+# unmount the drive like a normal run does, then exit 130 / 143.
+interrupted() {
+	printf "\n#### %s - ${red}INTERRUPTED${nocolor}!\n" "$(date +'%d %B %Y %Hh:%Mm:%Ss')"
+	if is_mounted; then
+		$restic unlock &>/dev/null
+		fusermount3 -u "$mount" &>/dev/null
+		is_mounted && fusermount3 -u "$mount" &>/dev/null
+	fi
+	exit "$1"
+}
+trap 'interrupted 130' INT
+trap 'interrupted 143' TERM
+
 start=$(date +%s)
 printf "\n#### %s - ${lightred}BACKUP STARTED${nocolor}!\n####\n" "$(date +'%d %B %Y %Hh:%Mm:%Ss')"
 
