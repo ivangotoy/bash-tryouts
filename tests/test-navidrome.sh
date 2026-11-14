@@ -41,6 +41,10 @@ else
 	cp "$RELEASE_TARBALL" "$out"
 fi'
 
+# mv stub: MV_FAIL makes the binary swap fail after navidrome was stopped.
+stub mv '[[ -n "$MV_FAIL" ]] && exit 1
+exec "'"$SAFE"'/mv" "$@"'
+
 reset_base() {
 	rm -rf "$base" "$WORK/tmp" "$WORK/log/init"
 	mkdir -p "$base/navidrome" "$base/Music" "$WORK/tmp"
@@ -77,5 +81,17 @@ check "download fails: exit status not 0 (got $rc)" test "$rc" -ne 0
 check 'download fails: no partial archive left' test ! -e "$base/navidrome.tar.gz" -a -z "$(ls -A "$WORK/tmp")"
 check 'download fails: binary and ID unchanged' grep -qx 'v0.98.0' "$base/ID"
 check 'download fails: navidrome not stopped' bash -c '! grep -qs stop "$1"' _ "$WORK/log/init"
+
+# A failure after "init.d stop" must not leave navidrome down until the
+# next cron run: the old binary stays (or is put back) and it is started.
+reset_base
+run_update MV_FAIL=1
+rc=$?
+check "swap fails: exit status not 0 (got $rc)" test "$rc" -ne 0
+check 'swap fails: old binary in place' grep -qx 'old binary' "$base/navidrome/navidrome"
+check 'swap fails: ID unchanged' grep -qx 'v0.98.0' "$base/ID"
+check "swap fails: navidrome started again (init log: $(tr '\n' ' ' < "$WORK/log/init" 2>/dev/null))" \
+	test "$(tr '\n' ' ' < "$WORK/log/init" 2>/dev/null)" = 'stop start '
+check 'swap fails: no archive left' test ! -e "$base/navidrome.tar.gz"
 
 done_testing

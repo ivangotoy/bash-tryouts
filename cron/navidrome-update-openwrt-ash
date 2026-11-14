@@ -54,7 +54,17 @@ if [ -z "$NEWID" ] || [ -z "$URL" ] || [ "$OLDID" = "$NEWID" ]; then
 fi
 
 # set -e stops at a failed download or extraction: remove the archive then too.
-trap 'rm -f "$ARCHIVE"' EXIT
+# After navidrome was stopped for the swap a failure must not leave it down
+# until the next cron run: put the old binary back if it is gone, start it.
+STOPPED=
+cleanup() {
+	rm -f "$ARCHIVE"
+	if [ -n "$STOPPED" ]; then
+		[ -f "$BASE/navidrome/navidrome" ] || cp "$BASE/navidrome-backup" "$BASE/navidrome/navidrome" || true
+		/etc/init.d/navidrome start || true
+	fi
+}
+trap cleanup EXIT
 rm -f "$ARCHIVE"
 wget -q -T 30 -O "$ARCHIVE" "$URL"
 tar -xzf "$ARCHIVE" -C "$STAGING/" navidrome
@@ -65,6 +75,7 @@ sync
 
 if [ -f "$STAGING/navidrome" ]; then
 	chmod +x "$STAGING/navidrome"
+	STOPPED=1
 	/etc/init.d/navidrome stop
 	sync
 	sleep 5
@@ -75,5 +86,6 @@ if [ -f "$STAGING/navidrome" ]; then
 	mv "$STAGING/navidrome" "$BASE/navidrome/"
 	printf '%s\n' "$NEWID" > "$BASE/ID"
 	sync
+	STOPPED=
 	/etc/init.d/navidrome start
 fi
