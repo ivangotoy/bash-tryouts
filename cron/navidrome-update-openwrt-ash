@@ -40,8 +40,10 @@ if ! pidof "$BASE/navidrome/navidrome" >/dev/null; then
 fi
 
 # Look for a newer release. One API call, both values come from the same answer.
+# -T: give up on a server that stops answering (busybox wget and
+# uclient-fetch both take it) instead of hanging the cron job.
 
-RELEASE="$(wget -q -O - "$API" 2>/dev/null || true)"
+RELEASE="$(wget -q -T 30 -O - "$API" 2>/dev/null || true)"
 NEWID="$(printf '%s\n' "$RELEASE" | grep -o '"tag_name": *"[^"]*"' | head -n 1 | cut -d '"' -f 4)"
 URL="$(printf '%s\n' "$RELEASE" | grep -o '"browser_download_url": *"[^"]*_linux_'"$ARCH"'\.tar\.gz"' | head -n 1 | cut -d '"' -f 4)"
 
@@ -50,7 +52,7 @@ if [ -z "$NEWID" ] || [ -z "$URL" ] || [ "$OLDID" = "$NEWID" ]; then
 fi
 
 rm -f "$ARCHIVE"
-wget -q -O "$ARCHIVE" "$URL"
+wget -q -T 30 -O "$ARCHIVE" "$URL"
 tar -xzf "$ARCHIVE" -C "$STAGING/" navidrome
 rm -f "$ARCHIVE"
 sync
