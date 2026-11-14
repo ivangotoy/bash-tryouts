@@ -32,7 +32,8 @@ fi
 cd "$dir" || exit 1
 yt-dlp "${params[@]}" "${baseurl}${video}" || exit 1
 
-file=$(find . -maxdepth 1 -name "*${video}.wav" -print -quit)
+# yt-dlp names the file "%(title)s [%(id)s].%(ext)s" by default.
+file=$(find . -maxdepth 1 -name "*\[${video}\].wav" -print -quit)
 if [[ -z "$file" ]]; then
 	printf 'Downloaded wav file for %s not found in %s\n' "$video" "$dir"
 	exit 1
