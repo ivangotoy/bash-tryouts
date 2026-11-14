@@ -28,6 +28,7 @@
 
 export LC_ALL=C
 export LANG=C
+setopt pipefail
 
 log="/var/log/nginx/access.log"
 statedir=~/blacklist
@@ -78,7 +79,8 @@ fi
 # Combined log format, split on double quotes (nginx escapes quotes inside
 # fields as \x22): $1 = 'IP - user [date] ', $2 = 'METHOD TARGET PROTO',
 # $3 = ' STATUS BYTES '. One line per banned IP.
-list="$(GOOD="${(j: :)myip}" CODES="${(j: :)codes}" BAD="$bad" awk -F '"' '
+# The sets are only replaced once the new list was read and saved.
+if ! list="$(GOOD="${(j: :)myip}" CODES="${(j: :)codes}" BAD="$bad" awk -F '"' '
 BEGIN {
 	n = split(ENVIRON["GOOD"], g, " "); for (i = 1; i <= n; i++) good[g[i]] = 1
 	n = split(ENVIRON["CODES"], c, " "); for (i = 1; i <= n; i++) code[c[i]] = 1
@@ -90,22 +92,31 @@ BEGIN {
 	split($3, st, " "); status = st[1]
 	if (ip == "" || (ip in good) || (ip in seen) || !(status in code)) next
 	if (target ~ bad) { seen[ip] = 1; print ip }
-}' "$log" | sort)"
+}' "$log" | sort)"; then
+	printf 'Could not read %s, the ban lists were not changed.\n' "$log" >&2
+	exit 1
+fi
 
 ips=(${(f)list})
 v6=(${(M)ips:#*:*})
 v4=(${ips:#*:*})
 
-{
-	printf 'create blacklist hash:ip family inet hashsize 4096 maxelem 65536 bucketsize 12 initval 0x6084fd11\n'
-	printf 'create blacklist6 hash:ip family inet6 hashsize 4096 maxelem 65536\n'
-	(( ${#v4} )) && printf 'add blacklist %s\n' $v4
-	(( ${#v6} )) && printf 'add blacklist6 %s\n' $v6
-} > "$statedir/ipsets.conf"
+# One print, so its exit status covers the whole file.
+if ! print -rl -- \
+	'create blacklist hash:ip family inet hashsize 4096 maxelem 65536 bucketsize 12 initval 0x6084fd11' \
+	'create blacklist6 hash:ip family inet6 hashsize 4096 maxelem 65536' \
+	${v4/#/add blacklist } ${v6/#/add blacklist6 } > "$statedir/ipsets.conf"; then
+	printf 'Could not write %s, the ban lists were not changed.\n' "$statedir/ipsets.conf" >&2
+	exit 1
+fi
 
 ipset -q flush blacklist
 ipset -q flush blacklist6
-ipset -q restore -! < "$statedir/ipsets.conf" &>/dev/null
+if ! ipset -q restore -! < "$statedir/ipsets.conf" &>/dev/null; then
+	printf 'Cron blacklisting status FAILED (ipset restore) - %s\n' "$(date)" >> "$statedir/status"
+	printf 'ipset restore from %s failed, check: ipset list blacklist blacklist6\n' "$statedir/ipsets.conf" >&2
+	exit 1
+fi
 
 printf 'Cron blacklisting status OK - %s\n' "$(date)" >> "$statedir/status"
 
