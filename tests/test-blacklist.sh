@@ -95,4 +95,19 @@ rm -f "$state/ipsets.conf"
 check "ipsets.conf not written: exit 1 (got $rc)" test "$rc" -eq 1
 check 'ipsets.conf not written: no restore or swap' test "$(ipset_log ' (restore|swap|flush) ')" = 0
 
+# Ban patterns: dots in file names are literal, "/(w|x)?shell" is a group.
+# Every request is a 404, so only the pattern decides.
+plog="$WORK/patterns.txt"
+for req in 192.0.2.21:/systemXphp 192.0.2.22:/system.php 192.0.2.23:/wshell \
+	192.0.2.24:/shell 192.0.2.25:/xshell 192.0.2.26:/wp-loginXphp 192.0.2.27:/wp-login.php \
+	'192.0.2.28:/(shell' '192.0.2.29:/|shell' 192.0.2.30:/mainXinstallerXphp; do
+	printf '%s - - [14/Nov/2026:10:00:00 +0000] "GET %s HTTP/1.1" 404 153 "-" "Mozilla/5.0"\n' "${req%%:*}" "${req#*:}"
+done > "$plog"
+pscript="$(patched cron/blacklist.sh "s|^log=\"/var/log/nginx/access.log\"|log=\"$plog\"|")" || exit 1
+mv "$pscript" "$WORK/blacklist-patterns.sh"
+HOME="$home" LOG="$WORK/log" "$UNSHARE_BIN" -r "$ZSH_BIN" "$WORK/blacklist-patterns.sh" > "$WORK/out" 2>&1
+banned="$(sed -n 's/^add blacklist //p' "$state/ipsets.conf" | tr '\n' ' ')"
+check "patterns: banned set (got: $banned)" \
+	test "$banned" = '192.0.2.22 192.0.2.23 192.0.2.24 192.0.2.25 192.0.2.27 '
+
 done_testing

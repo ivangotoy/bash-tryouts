@@ -41,7 +41,9 @@ myip=(127.0.0.1 ::1 192.168.1.1 192.168.1.222 192.168.1.70)
 
 # Request patterns that earn a ban (awk ERE). They are matched against the
 # request target (path and query string) only, not the whole log line.
-bad='jndi|system.php|actuator|kerbynet|RadEditorProvider|telerikwebui|Telerik.Web.UI|phpMyAdmin|content-post.php|mide.php|phpunit|HEADER.md|/owa/auth/logon.aspx|main.installer.php|\?author=[0-9]|wp-login.php|logon|getuser|execute|passwd|Nikto|/\.env($|\?)|nuclei|union|UNION|sql|conf|/[(w|x)]*shell|cmd|Admin|admin|cfg|boaform'
+# Dots in file names are escaped (\. matches a dot only); the value reaches
+# awk unchanged through ENVIRON, so one backslash is what awk sees.
+bad='jndi|system\.php|actuator|kerbynet|RadEditorProvider|telerikwebui|Telerik.Web.UI|phpMyAdmin|content-post\.php|mide\.php|phpunit|HEADER\.md|/owa/auth/logon\.aspx|main\.installer\.php|\?author=[0-9]|wp-login\.php|logon|getuser|execute|passwd|Nikto|/\.env($|\?)|nuclei|union|UNION|sql|conf|/(w|x)?shell|cmd|Admin|admin|cfg|boaform'
 
 # Only requests answered with one of these status codes earn a ban.
 codes=(301 302 400 403 404 499)
