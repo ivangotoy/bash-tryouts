@@ -38,7 +38,7 @@ the typical bash scripting standards:
 | cron/PROTIP-DNS-ADBLOCK-ADVICE.txt | - | - | dnscrypt-proxy 2 as an ad blocker |
 | macgen/macgen | zsh | desktop | all 16.7M MACs for a prefix, shuffled, optionally split |
 | nordvpn/BG-WG-16-NORDVPN, ES-WG-16-NORDVPN | zsh | desktop | 16 least loaded NordVPN WireGuard servers in Bulgaria / Spain |
-| nordvpn/NORDVPN-SERVERS | zsh | desktop | same for any country, picked from a list |
+| nordvpn/NORDVPN-SERVERS | zsh | desktop | 20 least loaded WireGuard servers for any country, picked from a list |
 | nordvpn/SERVER-SWITCHER | zsh | desktop, root | moves wg-quick@bg to the least loaded Bulgarian server |
 | nordvpn/bg.conf | - | - | template WireGuard config for SERVER-SWITCHER |
 | openwrt/ruter-upgrade | zsh | build machine | builds x86 OpenWrt and sysupgrades the router over ssh |
