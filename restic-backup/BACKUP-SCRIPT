@@ -134,6 +134,7 @@ step "$red" "REPO UNLOCKED FOR NEXT BACKUP"
 fusermount3 -u "$mount" &>/dev/null
 # Check that Google Drive was unmounted, try once more if not:
 is_mounted && fusermount3 -u "$mount" &>/dev/null
+is_mounted && fail "GOOGLE DRIVE UNMOUNT"
 step "$green" "REPO GOOGLE DRIVE DIR UNMOUNTED"
 
 end=$(date +%s)
