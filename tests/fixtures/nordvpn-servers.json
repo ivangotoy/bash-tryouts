@@ -1,11 +1,18 @@
 [
- {"hostname": "xa12.example.com", "station": "192.0.2.12", "load": 40,
+ {"hostname": "xa12.nordvpn.example", "station": "192.0.2.12", "load": 40,
   "technologies": [
+   {"identifier": "ikev2", "metadata": []},
    {"identifier": "openvpn_udp", "metadata": []},
-   {"identifier": "wireguard_udp", "metadata": [{"name": "public_key", "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="}]}
+   {"identifier": "proxy_ssl", "metadata": [{"name": "proxy_hostname", "value": "xa12.proxy.example"}]},
+   {"identifier": "proxy_ssl_cybersec", "metadata": [{"name": "proxy_hostname", "value": "xa12.proxy.example"}]},
+   {"identifier": "wireguard_udp", "metadata": [{"name": "public_key", "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="}]},
+   {"identifier": "nordwhisper", "metadata": [{"name": "port", "value": "443"}]}
   ]},
- {"hostname": "xa7.example.com", "station": "192.0.2.7", "load": 9,
+ {"hostname": "xa7.nordvpn.example", "station": "192.0.2.7", "load": 9,
   "technologies": [
-   {"identifier": "wireguard_udp", "metadata": [{"name": "public_key", "value": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="}]}
+   {"identifier": "openvpn_tcp", "metadata": []},
+   {"identifier": "proxy_ssl", "metadata": [{"name": "proxy_hostname", "value": "xa7.proxy.example"}]},
+   {"identifier": "wireguard_udp", "metadata": [{"name": "public_key", "value": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="}]},
+   {"identifier": "nordwhisper_udp", "metadata": [{"name": "port", "value": "8443"}]}
   ]}
 ]

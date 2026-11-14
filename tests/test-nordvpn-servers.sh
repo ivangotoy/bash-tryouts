@@ -19,7 +19,7 @@ run_servers() {
 
 run_servers ''
 check 'server list: exit 0' test $? -eq 0
-check 'server list: least loaded server listed' grep -q 'xa7.example.com' "$WORK/out"
+check 'server list: least loaded server listed' grep -q 'xa7.nordvpn.example' "$WORK/out"
 
 run_servers 22
 check 'server list request fails: exit 1' test $? -eq 1

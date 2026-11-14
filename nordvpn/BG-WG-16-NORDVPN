@@ -21,7 +21,7 @@ red=$(tput setaf 1 2>/dev/null)
 green=$(tput setaf 2 2>/dev/null)
 normal=$(tput sgr0 2>/dev/null)
 
-if ! servers="$(curl --max-time 30 --tlsv1.3 --silent --show-error --fail --compressed -4 "$api" | jq --raw-output --argjson limit "$limit" 'sort_by(.load) | limit($limit; .[]) | [.hostname, .station, (.technologies | .[].metadata | .[].value), .load] | "\(.[0]) \(.[1]) \(.[2]) \(.[3])"')" || [[ -z "$servers" ]]; then
+if ! servers="$(curl --max-time 30 --tlsv1.3 --silent --show-error --fail --compressed -4 "$api" | jq --raw-output --argjson limit "$limit" 'sort_by(.load) | limit($limit; .[]) | [.hostname, .station, ([.technologies[]?.metadata[]? | select(.name == "public_key") | .value][0] // ""), .load] | "\(.[0]) \(.[1]) \(.[2]) \(.[3])"')" || [[ -z "$servers" ]]; then
 	printf 'Could not get the server list from the NordVPN API.\n' >&2
 	exit 1
 fi
