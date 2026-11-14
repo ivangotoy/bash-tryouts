@@ -16,7 +16,8 @@
 # armv7 (see the asset names on the release page).
 #
 # Files:
-#   /mnt/sdb1/ID     release tag of the currently deployed binary
+#   /mnt/sdb1/ID                 release tag of the currently deployed binary
+#   /mnt/sdb1/navidrome.tar.gz   the release download, removed on every exit
 #
 # A missing ID file counts as "nothing deployed yet", so the first run
 # deploys the latest release. ID is updated only after the new binary has
@@ -28,7 +29,8 @@ set -e
 ARCH="${ARCH:-amd64}"
 BASE=/mnt/sdb1
 API=https://api.github.com/repos/navidrome/navidrome/releases/latest
-ARCHIVE="${TMPDIR:-/tmp}/navidrome.tar.gz"
+# Download to the same disk as STAGING, not to RAM (/tmp on OpenWrt).
+ARCHIVE="$BASE/navidrome.tar.gz"
 STAGING="$BASE/Music"
 
 OLDID="$(cat "$BASE/ID" 2>/dev/null || true)"

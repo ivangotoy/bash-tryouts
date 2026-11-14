@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # cron/navidrome-update-openwrt-ash, run with bash --posix (busybox is not
 # needed) on a copy whose /mnt/sdb1 and /etc/init.d/navidrome point to
-# scratch. wget calls have a time limit; a failed download leaves no
-# archive behind and the deployed binary and ID untouched.
+# scratch. wget calls have a time limit; the archive goes to $BASE (the
+# script's own disk, not RAM /tmp); a failed download leaves no archive
+# behind and the deployed binary and ID untouched.
 . "$(dirname "$0")/lib.sh"
 
 fixtures="$(cd "$(dirname "$0")/fixtures" && pwd)"
@@ -34,9 +35,9 @@ if [[ "$out" == - ]]; then
 		exec "'"$SLEEP_BIN"'" 20
 	fi
 	cat "$FIXTURES/navidrome-release.json"
-elif [[ -n "$DL_FAIL" ]]; then
-	printf partial > "$out"; exit 1
 else
+	printf "%s\n" "$out" > "$LOG/download.target"
+	[[ -n "$DL_FAIL" ]] && { printf partial > "$out"; exit 1; }
 	cp "$RELEASE_TARBALL" "$out"
 fi'
 
@@ -60,7 +61,8 @@ rc=$?
 check "update: exit 0 (got $rc)" test "$rc" -eq 0
 check 'update: new binary deployed' grep -qx 'new binary' "$base/navidrome/navidrome"
 check 'update: ID is the new tag' grep -qx 'v0.99.0' "$base/ID"
-check 'update: archive removed' test -z "$(ls -A "$WORK/tmp")"
+check 'update: archive downloaded to $BASE (the disk), not $TMPDIR' test "$(cat "$WORK/log/download.target")" = "$base/navidrome.tar.gz"
+check 'update: archive removed, $TMPDIR untouched' test ! -e "$base/navidrome.tar.gz" -a -z "$(ls -A "$WORK/tmp")"
 
 reset_base
 run_update HANG=1
@@ -72,7 +74,7 @@ reset_base
 run_update DL_FAIL=1
 rc=$?
 check "download fails: exit status not 0 (got $rc)" test "$rc" -ne 0
-check 'download fails: no partial archive left' test -z "$(ls -A "$WORK/tmp")"
+check 'download fails: no partial archive left' test ! -e "$base/navidrome.tar.gz" -a -z "$(ls -A "$WORK/tmp")"
 check 'download fails: binary and ID unchanged' grep -qx 'v0.98.0' "$base/ID"
 check 'download fails: navidrome not stopped' bash -c '! grep -qs stop "$1"' _ "$WORK/log/init"
 
