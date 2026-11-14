@@ -100,7 +100,8 @@ check 'ipsets.conf not written: no restore or swap' test "$(ipset_log ' (restore
 plog="$WORK/patterns.txt"
 for req in 192.0.2.21:/systemXphp 192.0.2.22:/system.php 192.0.2.23:/wshell \
 	192.0.2.24:/shell 192.0.2.25:/xshell 192.0.2.26:/wp-loginXphp 192.0.2.27:/wp-login.php \
-	'192.0.2.28:/(shell' '192.0.2.29:/|shell' 192.0.2.30:/mainXinstallerXphp; do
+	'192.0.2.28:/(shell' '192.0.2.29:/|shell' 192.0.2.30:/mainXinstallerXphp \
+	192.0.2.31:/TelerikXWebXUI 192.0.2.32:/Telerik.Web.UI; do
 	printf '%s - - [14/Nov/2026:10:00:00 +0000] "GET %s HTTP/1.1" 404 153 "-" "Mozilla/5.0"\n' "${req%%:*}" "${req#*:}"
 done > "$plog"
 pscript="$(patched cron/blacklist.sh "s|^log=\"/var/log/nginx/access.log\"|log=\"$plog\"|")" || exit 1
@@ -108,7 +109,7 @@ mv "$pscript" "$WORK/blacklist-patterns.sh"
 HOME="$home" LOG="$WORK/log" "$UNSHARE_BIN" -r "$ZSH_BIN" "$WORK/blacklist-patterns.sh" > "$WORK/out" 2>&1
 banned="$(sed -n 's/^add blacklist //p' "$state/ipsets.conf" | tr '\n' ' ')"
 check "patterns: banned set (got: $banned)" \
-	test "$banned" = '192.0.2.22 192.0.2.23 192.0.2.24 192.0.2.25 192.0.2.27 '
+	test "$banned" = '192.0.2.22 192.0.2.23 192.0.2.24 192.0.2.25 192.0.2.27 192.0.2.32 '
 
 # ~/blacklist/status keeps its newest 1000 lines (trimmed after the write,
 # via a temp file and mv; a failed trim leaves the file and no temp file).
