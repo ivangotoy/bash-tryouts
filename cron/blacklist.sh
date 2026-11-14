@@ -10,7 +10,7 @@
 #
 # Tooling used:
 #
-# rg awk nginx ipset iptables ip6tables
+# rg awk sed nginx ipset iptables ip6tables
 #
 # Works nicely in crontab, just keep your nginx access.log available at all times :)
 #
@@ -24,7 +24,9 @@
 # ip6tables -I INPUT -m set --match-set blacklist6 src -j DROP
 #
 # Every run rebuilds the set from the current access.log and saves it to
-# ~/blacklist/ipsets.conf; ~/blacklist/status gets one line per run.
+# ~/blacklist/ipsets.conf, loads it into the temporary sets blacklist-new
+# and blacklist6-new and swaps those with the live sets (no moment without
+# bans); ~/blacklist/status gets one line per run.
 
 export LC_ALL=C
 export LANG=C
@@ -110,13 +112,34 @@ if ! print -rl -- \
 	exit 1
 fi
 
-ipset -q flush blacklist
-ipset -q flush blacklist6
-if ! ipset -q restore -! < "$statedir/ipsets.conf" &>/dev/null; then
-	printf 'Cron blacklisting status FAILED (ipset restore) - %s\n' "$(date)" >> "$statedir/status"
-	printf 'ipset restore from %s failed, check: ipset list blacklist blacklist6\n' "$statedir/ipsets.conf" >&2
+# Load the new lists into temporary sets (ipsets.conf with the set names
+# renamed to blacklist-new / blacklist6-new) and swap them in, so the live
+# sets are never empty. On any failure the live sets keep their old content.
+destroy_new() {
+	ipset -q destroy blacklist-new &>/dev/null
+	ipset -q destroy blacklist6-new &>/dev/null
+}
+
+# fail STEP: drop the temporary sets, log FAILED, exit 1.
+fail() {
+	destroy_new
+	printf 'Cron blacklisting status FAILED (%s) - %s\n' "$1" "$(date)" >> "$statedir/status"
+	printf 'Updating the ban lists failed at %s, the live sets were not changed. Check: ipset list blacklist blacklist6\n' "$1" >&2
 	exit 1
+}
+
+# Leftovers of an interrupted run.
+destroy_new
+
+sed -E 's/^(create|add) (blacklist6?) /\1 \2-new /' "$statedir/ipsets.conf" | ipset -q restore -! &>/dev/null ||
+	fail 'ipset restore'
+ipset -q swap blacklist-new blacklist &>/dev/null || fail 'ipset swap'
+if ! ipset -q swap blacklist6-new blacklist6 &>/dev/null; then
+	# Put the old IPv4 list back so both sets stay as they were.
+	ipset -q swap blacklist-new blacklist &>/dev/null
+	fail 'ipset swap'
 fi
+destroy_new
 
 printf 'Cron blacklisting status OK - %s\n' "$(date)" >> "$statedir/status"
 
