@@ -19,6 +19,20 @@ log() {
 	printf '%s %s\n\n' "$(date)" "$1" >> "$logfile"
 }
 
+# Until the log moved to /var/log it was written to the running user's home
+# (same expression as the old script). Append that old log to the new one
+# once and remove it; when the append fails keep it and try again next run.
+oldlog="/home/$USER/alerter/coreruleset-updates"
+if [[ -f "$oldlog" && ! -L "$oldlog" ]]; then
+	if cat "$oldlog" >> "$logfile"; then
+		rm -f "$oldlog"
+		rmdir "${oldlog:h}" 2>/dev/null
+	else
+		printf 'Could not move %s into %s, kept it for the next run.\n' "$oldlog" "$logfile" >&2
+		log "Could not move $oldlog into this log, kept it for the next run."
+	fi
+fi
+
 cd "$repo" || exit 1
 
 if ! git fetch -q; then

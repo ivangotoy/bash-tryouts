@@ -28,7 +28,7 @@ SLEEP_BIN="$(command -v sleep)"
 UNSHARE_BIN="$(command -v unshare)"
 
 for tool in awk basename bash cat chmod cmp column cp cut date dirname env find \
-	grep gzip head id jq ln ls mkdir mktemp mv printf readlink rg rm sed sh \
+	grep gzip head id jq ln ls mkdir mktemp mv printf readlink rg rm rmdir sed sh \
 	sort stat tail tar tee touch tr uniq wc zsh; do
 	path="$(command -v "$tool")" && ln -s "$path" "$SAFE/$tool"
 done
