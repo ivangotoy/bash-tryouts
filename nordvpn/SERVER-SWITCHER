@@ -70,8 +70,11 @@ fi
 # If there is a less loaded (better) server - use it, else do nothing.
 
 if [[ "$old" != "$new" || "$oldkey" != "$newkey" ]]; then
-	sed -i -E -e "s/^(\s*Endpoint\s*=\s*)${old}\.nordvpn\.com/\1${new}.nordvpn.com/" \
-		-e "s|^(\s*PublicKey\s*=\s*).*|\1${newkey}|" "$file"
+	if ! sed -i -E -e "s/^(\s*Endpoint\s*=\s*)${old}\.nordvpn\.com/\1${new}.nordvpn.com/" \
+		-e "s|^(\s*PublicKey\s*=\s*).*|\1${newkey}|" "$file"; then
+		printf 'Could not edit %s, no changes will be made.\n' "$file"
+		exit 1
+	fi
 	if [[ "$old" != "$new" ]]; then
 		printf 'Changing server %s with the less loaded server %s.\n' "$old" "$new"
 	else

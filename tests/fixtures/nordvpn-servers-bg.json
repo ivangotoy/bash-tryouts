@@ -1,0 +1,11 @@
+[
+ {"hostname": "bg45.nordvpn.com", "station": "192.0.2.45", "load": 30,
+  "technologies": [
+   {"identifier": "openvpn_udp", "metadata": []},
+   {"identifier": "wireguard_udp", "metadata": [{"name": "public_key", "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="}]}
+  ]},
+ {"hostname": "bg7.nordvpn.com", "station": "192.0.2.7", "load": 5,
+  "technologies": [
+   {"identifier": "wireguard_udp", "metadata": [{"name": "public_key", "value": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="}]}
+  ]}
+]

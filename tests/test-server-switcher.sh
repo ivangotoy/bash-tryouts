@@ -23,4 +23,30 @@ rc=$?
 check "API timeout: exit 1 (got $rc)" test "$rc" -eq 1
 check 'API timeout: config unchanged' cmp -s "$REPO/nordvpn/bg.conf" "$conf"
 
+# API answer from a fixture: bg7 is the least loaded server.
+stub curl 'case ${@: -1} in
+	*/v1/servers\?*) cat "$FIXTURES/nordvpn-servers-bg.json" ;;
+	checkip.amazonaws.com) printf "198.51.100.1\n" ;;
+	*) exit 6 ;;
+esac'
+FIXTURES="$(dirname "$0")/fixtures"
+export FIXTURES
+
+rm -f "$WORK/log/systemctl"
+run_switcher
+rc=$?
+check "switch: exit 0 (got $rc)" test "$rc" -eq 0
+check 'switch: Endpoint is bg7' grep -qx 'Endpoint = bg7.nordvpn.com:51820' "$conf"
+check 'switch: PublicKey of bg7' grep -qx 'PublicKey = BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=' "$conf"
+check 'switch: wg-quick@bg restarted' grep -qx 'restart wg-quick@bg' "$WORK/log/systemctl"
+
+# The config cannot be edited (e.g. read-only /etc): no restart, exit 1.
+stub sed 'exit 4'
+rm -f "$WORK/log/systemctl"
+run_switcher
+rc=$?
+rm -f "$STUBS/sed"
+check "config edit fails: exit 1 (got $rc)" test "$rc" -eq 1
+check 'config edit fails: no restart' test ! -e "$WORK/log/systemctl"
+
 done_testing
