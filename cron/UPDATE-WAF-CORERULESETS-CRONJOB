@@ -43,7 +43,11 @@ upstreamhash="$(git rev-parse "$upstream")"
 if [[ "$headhash" != "$upstreamhash" ]]; then
 	if git pull -q &>/dev/null; then
 		sync &>/dev/null
-		systemctl reload nginx &>/dev/null
+		if ! systemctl reload nginx &>/dev/null; then
+			log "Coreruleset updated from git, but the nginx reload failed! The new rules are not active."
+			printf 'Coreruleset updated in %s, but systemctl reload nginx failed; check: nginx -t\n' "$repo" >&2
+			exit 1
+		fi
 		log "Coreruleset updated from git! GG!!"
 	else
 		log "Coreruleset update found but git pull failed!"
