@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # cron/navidrome-update-openwrt-ash, run with bash --posix (busybox is not
 # needed) on a copy whose /mnt/sdb1 and /etc/init.d/navidrome point to
-# scratch. wget calls have a time limit.
+# scratch. wget calls have a time limit; a failed download leaves no
+# archive behind and the deployed binary and ID untouched.
 . "$(dirname "$0")/lib.sh"
 
 fixtures="$(cd "$(dirname "$0")/fixtures" && pwd)"
@@ -66,5 +67,13 @@ run_update HANG=1
 rc=$?
 check "API does not answer: run ends on its own, exit 0 (got $rc)" test "$rc" -eq 0
 check 'API does not answer: ID unchanged' grep -qx 'v0.98.0' "$base/ID"
+
+reset_base
+run_update DL_FAIL=1
+rc=$?
+check "download fails: exit status not 0 (got $rc)" test "$rc" -ne 0
+check 'download fails: no partial archive left' test -z "$(ls -A "$WORK/tmp")"
+check 'download fails: binary and ID unchanged' grep -qx 'v0.98.0' "$base/ID"
+check 'download fails: navidrome not stopped' bash -c '! grep -qs stop "$1"' _ "$WORK/log/init"
 
 done_testing

@@ -51,6 +51,8 @@ if [ -z "$NEWID" ] || [ -z "$URL" ] || [ "$OLDID" = "$NEWID" ]; then
 	exit 0
 fi
 
+# set -e stops at a failed download or extraction: remove the archive then too.
+trap 'rm -f "$ARCHIVE"' EXIT
 rm -f "$ARCHIVE"
 wget -q -T 30 -O "$ARCHIVE" "$URL"
 tar -xzf "$ARCHIVE" -C "$STAGING/" navidrome
