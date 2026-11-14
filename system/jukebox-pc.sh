@@ -11,7 +11,7 @@
 # from Youtube on the linux terminal with PulseAudio.
 # The wav file is kept in ~/Downloads.
 
-dir="/home/$USER/Downloads"
+dir="$HOME/Downloads"
 baseurl="https://youtu.be/"
 params=(--geo-bypass --quiet -4 -x --audio-format wav)
 
