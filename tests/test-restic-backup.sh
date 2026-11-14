@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # restic-backup/BACKUP-SCRIPT: a Google Drive mount that does not go away
 # after the backup is reported as a failure, not as "UNMOUNTED"; an
-# interrupted run (INT/TERM) still unlocks and unmounts, exit 130/143.
+# interrupted run (INT/TERM) still unlocks and unmounts, exit 130/143; a
+# password file readable by group/other gets a warning, the backup still runs.
 . "$(dirname "$0")/lib.sh"
 
 home="$WORK/home"
@@ -21,7 +22,7 @@ stub mount '[[ -e "$LOG/mounted" ]] && printf "gdfuse on %s type fuse.gdfuse (rw
 run_backup() {
 	: > "$WORK/log/mounted"
 	rm -f "$WORK/log/restic"
-	HOME="$home" LOG="$WORK/log" STUCK="$1" SIGNAL="$2" "$ZSH_BIN" "$REPO/restic-backup/BACKUP-SCRIPT" > "$WORK/out" 2>&1
+	HOME="$home" LOG="$WORK/log" STUCK="$1" SIGNAL="$2" "$ZSH_BIN" "$REPO/restic-backup/BACKUP-SCRIPT" > "$WORK/out" 2> "$WORK/err"
 }
 
 run_backup ''
@@ -44,6 +45,16 @@ for sig in INT:130 TERM:143; do
 		test "$(sed -n '/ backup /,$p' "$WORK/log/restic" | grep -c ' unlock$')" -ge 1
 	check "SIG${sig%%:*} during backup: no forget/prune, not reported as ended" \
 		test "$(grep -c forget "$WORK/log/restic")$(grep -c 'BACKUP ENDED' "$WORK/out")" = 00
+done
+
+printf 'example-password\n' > "$home/.restic-password"
+for mode in 600:0 400:0 640:1 604:1 644:1; do
+	chmod "${mode%%:*}" "$home/.restic-password"
+	run_backup ''
+	rc=$?
+	check "password file mode ${mode%%:*}: backup runs, exit 0 (got $rc)" test "$rc" -eq 0
+	check "password file mode ${mode%%:*}: warnings on stderr = ${mode#*:}" \
+		test "$(grep -c 'restic-password is readable by group or others' "$WORK/err")" = "${mode#*:}"
 done
 
 done_testing

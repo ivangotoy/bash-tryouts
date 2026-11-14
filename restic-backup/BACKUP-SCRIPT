@@ -60,6 +60,13 @@ if ! command -v restic &>/dev/null; then
 	exit 1
 fi
 
+# The password file should be readable by its owner only: warn, go on.
+if [[ -f "$RESTIC_PASSWORD_FILE" ]] && perms="$(stat -L -c %a "$RESTIC_PASSWORD_FILE" 2>/dev/null)" &&
+	(( 8#$perms & 8#044 )); then
+	printf 'Warning: %s is readable by group or others (mode %s), fix it with: chmod 600 %s\n' \
+		"$RESTIC_PASSWORD_FILE" "$perms" "$RESTIC_PASSWORD_FILE" >&2
+fi
+
 restic=(restic --cleanup-cache --compression max -q)
 
 # Terminal colors:
