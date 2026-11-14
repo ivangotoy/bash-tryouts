@@ -30,12 +30,11 @@ if [[ ! "$video" =~ ^[A-Za-z0-9_-]+$ ]]; then
 fi
 
 cd "$dir" || exit 1
-yt-dlp "${params[@]}" "${baseurl}${video}" || exit 1
-
-# yt-dlp names the file "%(title)s [%(id)s].%(ext)s" by default.
-file=$(find . -maxdepth 1 -name "*\[${video}\].wav" -print -quit)
-if [[ -z "$file" ]]; then
-	printf 'Downloaded wav file for %s not found in %s\n' "$video" "$dir"
+# yt-dlp prints the final path (after the conversion to wav and the move),
+# so any output template in the user's yt-dlp config works.
+file="$(yt-dlp "${params[@]}" --print after_move:filepath "${baseurl}${video}")" || exit 1
+if [[ -z "$file" || ! -f "$file" ]]; then
+	printf 'Downloaded wav file for %s not found in %s (yt-dlp reported "%s")\n' "$video" "$dir" "$file"
 	exit 1
 fi
 
