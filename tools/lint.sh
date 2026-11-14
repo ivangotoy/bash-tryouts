@@ -54,9 +54,17 @@ for f in "${files[@]}"; do
 
 	sc=-
 	if [[ "$shell" != zsh && -n "$shellcheck" ]]; then
-		sc=$("$shellcheck" -s "$shell" -f gcc "$f" | wc -l)
-		if (( sc > 0 )); then
-			"$shellcheck" -s "$shell" -f gcc "$f"
+		# One run per file; its exit status counts too, so a shellcheck
+		# that cannot run (status 2+, nothing on stdout) is a failure.
+		out="$("$shellcheck" -s "$shell" -f gcc "$f")"
+		rc=$?
+		sc=0
+		if [[ -n "$out" ]]; then
+			printf '%s\n' "$out"
+			sc=$(wc -l <<< "$out")
+		fi
+		if (( rc != 0 || sc > 0 )); then
+			(( sc > 0 )) || sc="error($rc)"
 			failed=1
 		fi
 	fi
