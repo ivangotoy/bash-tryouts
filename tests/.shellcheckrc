@@ -1,0 +1,3 @@
+# Test files source tests/lib.sh (not followed by shellcheck) and write
+# stub bodies in single quotes on purpose.
+disable=SC1091,SC2016
