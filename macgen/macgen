@@ -15,6 +15,7 @@
 
 export LC_ALL=C
 export LANG=C
+setopt pipefail
 
 printf 'Example device prefix is: 00:1A:79: or 78:A3:52: which is 9 symbols.\n\nProvide 9 symbols prefix:\n\n'
 
@@ -33,7 +34,10 @@ WORDLIST="${BIGFILE//:/-}"
 PARTPREFIX="${PREFIX//:/-}"
 
 printf 'Selected device prefix is %s\n\nPlease, wait a sec...\n\n' "$PREFIX"
-printf '%s\n' "$PREFIX"${^hex}${^hex}:${^hex}${^hex}:${^hex}${^hex} | shuf | tr '[:lower:]' '[:upper:]' > "$WORDLIST" || exit 1
+printf '%s\n' "$PREFIX"${^hex}${^hex}:${^hex}${^hex}:${^hex}${^hex} | shuf | tr '[:lower:]' '[:upper:]' > "$WORDLIST" || {
+	printf 'Generating %s failed (see the error above).\n' "$WORDLIST" >&2
+	exit 1
+}
 
 end=$(date +%s)
 runtime=$((end - start))
