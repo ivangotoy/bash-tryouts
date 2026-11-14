@@ -13,7 +13,7 @@
 
 dir="$HOME/Downloads"
 baseurl="https://youtu.be/"
-params=(--geo-bypass --quiet -4 -x --audio-format wav)
+params=(--quiet -4 -x --audio-format wav)
 
 for tool in yt-dlp paplay; do
 	if ! command -v "$tool" >/dev/null 2>&1; then
