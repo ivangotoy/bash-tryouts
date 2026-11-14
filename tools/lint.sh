@@ -27,14 +27,25 @@ fi
 
 if (( $# )); then
 	files=("$@")
+elif list="$(git ls-files)"; then
+	mapfile -t files <<< "$list"
 else
-	mapfile -t files < <(git ls-files)
+	printf 'git ls-files failed: run this in a checkout or name the files to check.\n' >&2
+	exit 1
 fi
 
 failed=0
 checked=0
 for f in "${files[@]}"; do
-	[[ -f "$f" ]] || continue
+	if [[ ! -f "$f" ]]; then
+		# A named file that is not there is an error; a tracked file
+		# deleted in the work tree is just skipped.
+		if (( $# )); then
+			printf '%s: not a file\n' "$f" >&2
+			failed=1
+		fi
+		continue
+	fi
 	IFS= read -r first < "$f" || true
 	case $first in
 		'#!'*zsh*) shell='zsh'; syntax=(zsh -n) ;;
