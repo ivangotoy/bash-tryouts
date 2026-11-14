@@ -20,6 +20,9 @@ OPENWRT="$HOME/Downloads/openwrt"
 IMAGE="openwrt-x86-64-generic-ext4-combined.img"
 FIRMWARE="$OPENWRT/bin/targets/x86/64/$IMAGE"
 ROUTER="router"
+# Give up on a router that does not answer instead of hanging: connect
+# timeout, and keepalives that end a session that went silent (30 s).
+SSH_OPTS=(-o ConnectTimeout=10 -o ServerAliveInterval=10 -o ServerAliveCountMax=3)
 JOBS="${JOBS:-$(nproc)}"
 
 say() {
@@ -71,13 +74,13 @@ if [[ ! -f "$FIRMWARE" ]]; then
 fi
 say "Done building, let's flash it."
 
-if ! scp "$FIRMWARE" "$ROUTER:/tmp/" &>/dev/null; then
+if ! scp $SSH_OPTS "$FIRMWARE" "$ROUTER:/tmp/" &>/dev/null; then
 	say "Copying firmware to $ROUTER failed! Nothing flashed."
 	exit 1
 fi
 
 # The router reboots during sysupgrade, so the ssh exit status is meaningless.
-ssh "$ROUTER" "sysupgrade -q /tmp/$IMAGE" &>/dev/null
+ssh $SSH_OPTS "$ROUTER" "sysupgrade -q /tmp/$IMAGE" &>/dev/null
 
 sleep 15
 
