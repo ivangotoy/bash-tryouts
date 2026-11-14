@@ -46,15 +46,22 @@ fi
 
 # Let's get the job done:
 
+# Returns 1 when the smart log of a disk could not be read.
 nvme_temps() {
-	local disk log
+	local disk log rc=0
 	for disk in "${disks[@]}"; do
-		log="$(nvme smart-log "$disk")"
+		if ! log="$(nvme smart-log "$disk")"; then
+			printf 'nvme smart-log %s failed.\n' "$disk" >&2
+			rc=1
+			continue
+		fi
 		printf '\n'
 		printf '>>>>> %s TEMPS: DEGREES\nFLASH MEMORY:' "$disk"
 		printf '%s\n' "$log" | rg 'temp' | cut -d ':' -f 2
 		printf 'ASIC CHIP:'
 		printf '%s\n' "$log" | rg 'or 1' | cut -d ':' -f 2
 	done
+	return "$rc"
 }
+set -o pipefail
 nvme_temps | column -t -s ':'
