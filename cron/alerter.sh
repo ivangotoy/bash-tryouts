@@ -28,12 +28,18 @@ if [[ -z "$mailer" ]]; then
 	exit 1
 fi
 
+# Exit status 1 when an alert could not be handed to sendmail.
+failed=0
 for process in $processes; do
 	if [[ "$process" == php-fpm && -z "$PHP_FPM" ]]; then
 		pgrep -f '^php-fpm' >/dev/null 2>&1 && continue
 	else
 		pidof "$process" >/dev/null 2>&1 && continue
 	fi
-	printf 'To: %s\nFrom: %s\nSubject: %s NOT RUNNING :(\n\n%s is not running!!! Please, check %s\nRegards,\n%s Alerter Cron\n' \
-		"$recipient" "$sender" "$process" "$process" "$site" "Digtvbg.com" | "$mailer" -t
+	if ! printf 'To: %s\nFrom: %s\nSubject: %s NOT RUNNING :(\n\n%s is not running!!! Please, check %s\nRegards,\n%s Alerter Cron\n' \
+		"$recipient" "$sender" "$process" "$process" "$site" "Digtvbg.com" | "$mailer" -t; then
+		printf 'Could not send the alert for %s with %s.\n' "$process" "$mailer" >&2
+		failed=1
+	fi
 done
+exit $failed
