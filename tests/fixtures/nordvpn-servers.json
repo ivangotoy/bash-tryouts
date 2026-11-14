@@ -1,0 +1,11 @@
+[
+ {"hostname": "xa12.example.com", "station": "192.0.2.12", "load": 40,
+  "technologies": [
+   {"identifier": "openvpn_udp", "metadata": []},
+   {"identifier": "wireguard_udp", "metadata": [{"name": "public_key", "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="}]}
+  ]},
+ {"hostname": "xa7.example.com", "station": "192.0.2.7", "load": 9,
+  "technologies": [
+   {"identifier": "wireguard_udp", "metadata": [{"name": "public_key", "value": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="}]}
+  ]}
+]

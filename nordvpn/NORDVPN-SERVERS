@@ -40,7 +40,10 @@ fi
 
 printf 'HERE ARE THE WIREGUARD SERVERS FROM COUNTRY ID %s SORTED BY LOAD:\n' "$country_id"
 
-LIST="$(curl $curl_opts "https://api.nordvpn.com/v1/servers?filters\[servers_technologies\]\[identifier\]=wireguard_udp&filters\[country_id\]=${country_id}&limit=${limit}" | jq --raw-output --argjson limit "$limit" 'sort_by(.load) | limit($limit; .[]) | [.hostname, .station, (.technologies | .[].metadata | .[].value), .load] | "\(.[0])  \(.[1])  \(.[2])  \(.[3])"')"
+if ! LIST="$(curl $curl_opts "https://api.nordvpn.com/v1/servers?filters\[servers_technologies\]\[identifier\]=wireguard_udp&filters\[country_id\]=${country_id}&limit=${limit}" | jq --raw-output --argjson limit "$limit" 'sort_by(.load) | limit($limit; .[]) | [.hostname, .station, (.technologies | .[].metadata | .[].value), .load] | "\(.[0])  \(.[1])  \(.[2])  \(.[3])"')" || [[ -z "$LIST" ]]; then
+	printf 'Could not get the server list from the NordVPN API.\n' >&2
+	exit 1
+fi
 
 printf 'HOST IP PUBKEY LOAD\n%s\n' "$LIST" | column -tW 3
 printf 'PORT NUMBER IS ALWAYS: 51820\n'
