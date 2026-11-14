@@ -20,7 +20,7 @@ setopt pipefail
 
 file="/etc/wireguard/bg.conf"
 country_id=33
-curl_opts=(--tlsv1.3 --silent --show-error --fail --compressed -4)
+curl_opts=(--max-time 30 --tlsv1.3 --silent --show-error --fail --compressed -4)
 
 # CHECK ROOT ACCESS:
 
