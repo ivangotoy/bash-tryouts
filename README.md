@@ -77,9 +77,9 @@ tests/run.sh runs every tests/test-*.sh. The tests never touch the network
 or the system: each one runs a script with a PATH that holds only stub
 commands (curl, ssh, ipset, systemctl, ... answering from fixtures) and
 symlinks to local tools (coreutils, shells, grep, sed, awk, jq), and keeps
-its files in a scratch directory under `$TMPDIR` (or `~/.cache` when TMPDIR
-is unset). Scripts with hard coded system paths are tested on a copy with
-only those paths rewritten. The root-only scripts are run as root of an
+its files in a scratch directory under `$TMPDIR` (or `$XDG_CACHE_HOME`,
+default `~/.cache`, when TMPDIR is unset). Scripts with hard coded system
+paths are tested on a copy with only those paths rewritten. The root-only scripts are run as root of an
 unprivileged user namespace (`unshare -r`); without one those tests are
 skipped and say so.
 
