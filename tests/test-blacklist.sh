@@ -134,6 +134,19 @@ banned="$(sed -n 's/^add blacklist //p' "$state/ipsets.conf" | tr '\n' ' ')"
 check "patterns: banned set (got: $banned)" \
 	test "$banned" = '192.0.2.22 192.0.2.23 192.0.2.24 192.0.2.25 192.0.2.27 192.0.2.32 '
 
+# Only IP addresses reach ipset: a first field that is a network, a range
+# or not an address at all is skipped (every request below earns a ban).
+flog="$WORK/field1.txt"
+for client in 198.51.100.0/24 192.0.2.1-192.0.2.200 unix: example.org 192.0.2.40 '::ffff:192.0.2.41' 2001:DB8::A; do
+	printf '%s - - [14/Nov/2026:10:00:00 +0000] "GET /wp-login.php HTTP/1.1" 404 153 "-" "-"\n' "$client"
+done > "$flog"
+fscript="$(patched cron/blacklist.sh "s|^log=\"/var/log/nginx/access.log\"|log=\"$flog\"|")" || exit 1
+mv "$fscript" "$WORK/blacklist-field1.sh"
+HOME="$home" LOG="$WORK/log" "$UNSHARE_BIN" -r "$ZSH_BIN" "$WORK/blacklist-field1.sh" > "$WORK/out" 2>&1
+added="$(grep '^add ' "$state/ipsets.conf" | tr '\n' ' ')"
+check "client field: only addresses added (got: $added)" \
+	test "$added" = 'add blacklist 192.0.2.40 add blacklist6 2001:DB8::A add blacklist6 ::ffff:192.0.2.41 '
+
 # ~/blacklist/status keeps its newest 1000 lines (trimmed after the write,
 # via a temp file and mv; a failed trim leaves the file and no temp file).
 stub mv-fail 'exit 1'

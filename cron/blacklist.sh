@@ -99,6 +99,8 @@ BEGIN {
 	split($2, r, " "); target = r[2]
 	split($3, st, " "); status = st[1]
 	if (ip == "" || (ip in good) || (ip in seen) || !(status in code)) next
+	# Only single IPv4/IPv6 addresses go to ipset: no network, range or name.
+	if (ip !~ /^[0-9.]+$/ && ip !~ /^[0-9A-Fa-f.]*:[0-9A-Fa-f:.]*$/) next
 	if (target ~ bad) { seen[ip] = 1; print ip }
 }' "$log" | sort)"; then
 	printf 'Could not read %s, the ban lists were not changed.\n' "$log" >&2
