@@ -57,7 +57,10 @@ select answer in "Yes" "No"; do
 				*) printf 'Exiting now.\n\nBye!\n' ; exit 0 ;;
 			esac
 			printf 'Splitting %s to smaller %s lines each.\n' "$WORDLIST" "$label"
-			split -l "$lines" -a 2 --numeric-suffixes=1 --additional-suffix=.txt "$WORDLIST" "${PARTPREFIX}${tag}PART"
+			if ! split -l "$lines" -a 2 --numeric-suffixes=1 --additional-suffix=.txt "$WORDLIST" "${PARTPREFIX}${tag}PART"; then
+				printf 'Splitting %s failed (see the error above).\n' "$WORDLIST" >&2
+				exit 1
+			fi
 			break ;;
 		No)
 			printf 'Exiting now.\n'
