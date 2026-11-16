@@ -15,13 +15,16 @@ olddir="$WORK/oldhome/alerter"
 oldlog="$olddir/coreruleset-updates"
 
 # git stub: the checkout is one commit behind its upstream origin/main.
+# HANG=fetch|pull: that call never ends (a remote that stops answering).
 stub git 'case "$*" in
-	"fetch -q"|"pull -q") exit 0 ;;
+	"fetch -q"|"pull -q") [[ "$*" == "${HANG:-x} -q" ]] && exec "'"$SLEEP_BIN"'" 30; exit 0 ;;
 	"rev-parse --abbrev-ref @{upstream}") printf "origin/main\n" ;;
 	"rev-parse HEAD") printf "1111111111111111111111111111111111111111\n" ;;
 	"rev-parse origin/main") printf "2222222222222222222222222222222222222222\n" ;;
 	*) exit 1 ;;
 esac'
+# timeout stub: the real timeout with 2 seconds instead of the script's limit.
+stub timeout 'shift; exec "'"$TIMEOUT_BIN"'" 2 "$@"'
 stub sync 'exit 0'
 stub systemctl 'printf "%s\n" "$*" >> "$LOG/systemctl"; exit "${RELOAD_RC:-0}"'
 
@@ -40,6 +43,17 @@ run_waf 1
 rc=$?
 check "update, reload fails: exit 1 (got $rc)" test "$rc" -eq 1
 check 'update, reload fails: logged as a failure' grep -q 'reload failed' "$logfile"
+
+# A remote that stops answering must not hang the cron job: git fetch and
+# git pull run under timeout (the timeout stub gives them 2 seconds).
+for hang in fetch pull; do
+	rm -f "$logfile" "$WORK/log/systemctl"
+	LOG="$WORK/log" HANG="$hang" "$TIMEOUT_BIN" 10 "$ZSH_BIN" "$script" > "$WORK/out" 2>&1
+	rc=$?
+	check "git $hang hangs: run ends, exit 1 (got $rc)" test "$rc" -eq 1
+	check "git $hang hangs: logged as failed, no reload" \
+		test "$(grep -c "git $hang failed" "$logfile" 2>/dev/null)" = 1 -a ! -e "$WORK/log/systemctl"
+done
 
 # Pre-move log: appended to the log, then removed with its empty directory.
 mkdir -p "$olddir"

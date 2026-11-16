@@ -52,7 +52,11 @@ fi
 
 cd "$repo" || exit 1
 
-if ! git fetch -q; then
+# git fetch and git pull give up after this many seconds, so a remote that
+# stops answering does not hang the cron job.
+net_timeout=300
+
+if ! timeout "$net_timeout" git fetch -q; then
 	log "git fetch failed, nothing changed."
 	exit 1
 fi
@@ -72,7 +76,7 @@ upstreamhash="$(git rev-parse "$upstream")"
 # Human readable lines go to the log file above.
 
 if [[ "$headhash" != "$upstreamhash" ]]; then
-	if git pull -q &>/dev/null; then
+	if timeout "$net_timeout" git pull -q &>/dev/null; then
 		sync &>/dev/null
 		if ! systemctl reload nginx &>/dev/null; then
 			log "Coreruleset updated from git, but the nginx reload failed! The new rules are not active."
