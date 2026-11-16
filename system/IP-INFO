@@ -25,7 +25,7 @@ printf '\n'
 # Public IP, over https (a plain http answer could be faked on the way);
 # --fail: an HTTP error page is not shown as the address.
 
-printf 'MY PUBLIC IP IS: '; curl --max-time 5 --silent --fail --compressed -4 https://checkip.amazonaws.com
+printf 'MY PUBLIC IP IS: '; curl --max-time 5 --tlsv1.3 --silent --fail --compressed -4 https://checkip.amazonaws.com
 
 # The last empty line for the best placement of data on the terminal.
 

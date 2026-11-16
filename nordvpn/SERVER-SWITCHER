@@ -21,9 +21,8 @@ setopt pipefail
 file="/etc/wireguard/bg.conf"
 country_id=33
 curl_opts=(--max-time 30 --tlsv1.3 --silent --show-error --fail --compressed -4)
-# The public IP comes over https (plain http could be faked on the way);
-# curl's default minimum TLS version, as the address check needs no 1.3.
-ip_opts=(--max-time 30 --silent --show-error --fail --compressed -4)
+# The public IP comes over https (plain http could be faked on the way),
+# with the same curl options as the API calls.
 ip_url="https://checkip.amazonaws.com"
 
 # CHECK ROOT ACCESS:
@@ -53,7 +52,7 @@ best="$(curl $curl_opts "https://api.nordvpn.com/v1/servers?filters\[servers_tec
 new="${${best%% *}%%.*}"
 newkey="${best#* }"
 
-printf 'CURRENT IP IS: %s\n' "$(curl $ip_opts "$ip_url")"
+printf 'CURRENT IP IS: %s\n' "$(curl $curl_opts "$ip_url")"
 
 if [[ ! "$old" =~ '^bg[0-9]+$' ]]; then
 	printf 'No bgNN.nordvpn.com Endpoint found in %s, no changes will be made.\n' "$file"
@@ -91,4 +90,4 @@ if [[ "$old" != "$new" || "$oldkey" != "$newkey" ]]; then
 else
 	printf 'Server %s is still the best in the group no changes will be made.\n' "$old"
 fi
-printf 'NEW IP IS: %s\n' "$(curl $ip_opts "$ip_url")"
+printf 'NEW IP IS: %s\n' "$(curl $curl_opts "$ip_url")"

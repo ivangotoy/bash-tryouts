@@ -5,10 +5,11 @@
 
 stub ip 'printf "2: eth0    inet 192.0.2.10/24 brd 192.0.2.255 scope global eth0\\       valid_lft forever preferred_lft forever\n"'
 # curl stub: answers only https://checkip.amazonaws.com, and only with a
-# time limit (--max-time); anything else fails like curl does. HTTP_ERROR:
+# time limit (--max-time) and TLS 1.3 (--tlsv1.3); anything else fails
+# like curl does. HTTP_ERROR:
 # the server answers 503 (curl prints the error page unless --fail).
-stub curl 'limit=; fail=; for a; do [[ "$a" == --max-time ]] && limit=1; [[ "$a" == --fail ]] && fail=1; done
-[[ -n "$limit" && "${@: -1}" == https://checkip.amazonaws.com ]] || exit 6
+stub curl 'limit=; fail=; tls=; for a; do [[ "$a" == --max-time ]] && limit=1; [[ "$a" == --fail ]] && fail=1; [[ "$a" == --tlsv1.3 ]] && tls=1; done
+[[ -n "$limit" && -n "$tls" && "${@: -1}" == https://checkip.amazonaws.com ]] || exit 6
 if [[ -n "$HTTP_ERROR" ]]; then [[ -n "$fail" ]] && exit 22; printf "<html>503 Service Unavailable</html>\n"; exit 0; fi
 printf "198.51.100.1\n"'
 

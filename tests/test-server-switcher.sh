@@ -24,10 +24,10 @@ check "API timeout: exit 1 (got $rc)" test "$rc" -eq 1
 check 'API timeout: config unchanged' cmp -s "$REPO/nordvpn/bg.conf" "$conf"
 
 # API answer from a fixture: bg7 is the least loaded server. The public IP
-# is answered only over https.
+# is answered only over https with TLS 1.3 (--tlsv1.3).
 stub curl 'case ${@: -1} in
 	*/v1/servers\?*) cat "$FIXTURES/nordvpn-servers-bg.json" ;;
-	https://checkip.amazonaws.com) printf "198.51.100.1\n" ;;
+	https://checkip.amazonaws.com) [[ " $* " == *" --tlsv1.3 "* ]] || exit 35; printf "198.51.100.1\n" ;;
 	*) exit 6 ;;
 esac'
 FIXTURES="$(dirname "$0")/fixtures"
