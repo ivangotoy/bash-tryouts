@@ -22,9 +22,10 @@ printf 'MY LOCAL IP IS: '; ip -4 -o addr show scope global | rg -o 'inet [0-9.]+
 
 printf '\n'
 
-# Public IP, over https (a plain http answer could be faked on the way).
+# Public IP, over https (a plain http answer could be faked on the way);
+# --fail: an HTTP error page is not shown as the address.
 
-printf 'MY PUBLIC IP IS: '; curl --max-time 5 --silent --compressed -4 https://checkip.amazonaws.com
+printf 'MY PUBLIC IP IS: '; curl --max-time 5 --silent --fail --compressed -4 https://checkip.amazonaws.com
 
 # The last empty line for the best placement of data on the terminal.
 
