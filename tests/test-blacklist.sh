@@ -23,13 +23,23 @@ case " $* " in
 	*" list "*) [[ -z "$NOSETS" ]]; exit ;;
 esac
 exit 0'
-stub iptables-save 'printf -- "-A INPUT -m set --match-set blacklist src -j DROP\n"'
-stub ip6tables-save 'printf -- "-A INPUT -m set --match-set blacklist6 src -j DROP\n"'
+# iptables-save stubs: the DROP rule is there; RULES=none: it is missing;
+# RULES=big: it is followed by ~1.8 MB of other rules (a large ruleset).
+stub iptables-save '[[ "$RULES" == none ]] && exit 0
+printf -- "-A INPUT -m set --match-set blacklist src -j DROP\n"
+if [[ "$RULES" == big ]]; then
+	for ((i = 0; i < 30000; i++)); do printf -- "-A EXAMPLE -s 198.51.100.%d/32 -j RETURN -m comment --comment padding\n" $((i % 250)); done
+fi'
+stub ip6tables-save '[[ "$RULES" == none ]] && exit 0
+printf -- "-A INPUT -m set --match-set blacklist6 src -j DROP\n"
+if [[ "$RULES" == big ]]; then
+	for ((i = 0; i < 30000; i++)); do printf -- "-A EXAMPLE -s 2001:db8::%x/128 -j RETURN -m comment --comment padding\n" $((i % 250)); done
+fi'
 stub iptables 'printf "%s\n" "$*" >> "$LOG/iptables"'
 stub ip6tables 'printf "%s\n" "$*" >> "$LOG/iptables"'
 
 run_blacklist() {
-	rm -f "$WORK/log/ipset" "$WORK/log/restore.in"
+	rm -f "$WORK/log/ipset" "$WORK/log/restore.in" "$WORK/log/iptables"
 	HOME="$home" LOG="$WORK/log" "$@" "$UNSHARE_BIN" -r "$ZSH_BIN" "$script" > "$WORK/out" 2>&1
 }
 
@@ -56,6 +66,19 @@ check 'rebuild: IPv4 set swapped in' test "$(ipset_log 'swap blacklist-new black
 check 'rebuild: IPv6 set swapped in' test "$(ipset_log 'swap blacklist6-new blacklist6$')" = 1
 check 'rebuild: temporary sets destroyed' test "$(ipset_log 'destroy blacklist6?-new$')" -ge 2
 check 'rebuild: status OK' grep -q '^Cron blacklisting status OK' <(last_status)
+check 'rebuild: DROP rules present, none added' test ! -e "$WORK/log/iptables"
+
+# The DROP rules are added only when they are missing, also when the
+# ruleset is large (the check must read all of it, not stop the reader).
+run_blacklist env RULES=big
+rc=$?
+check "large ruleset: exit 0 (got $rc)" test "$rc" -eq 0
+check "large ruleset: no DROP rule added again (got: $(cat "$WORK/log/iptables" 2>/dev/null))" test ! -e "$WORK/log/iptables"
+run_blacklist env RULES=none
+rc=$?
+check "DROP rules missing: exit 0 (got $rc)" test "$rc" -eq 0
+check 'DROP rules missing: one IPv4 and one IPv6 rule added' \
+	test "$(grep -cxE -- '-I INPUT -m set --match-set blacklist6? src -j DROP' "$WORK/log/iptables" 2>/dev/null)" = 2
 
 run_blacklist env NOSETS=1
 rc=$?

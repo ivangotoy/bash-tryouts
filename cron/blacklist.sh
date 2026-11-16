@@ -73,11 +73,14 @@ if ! ipset -q list blacklist6 &>/dev/null; then
 	ipset create blacklist6 hash:ip family inet6
 fi
 
-if ! iptables-save | rg -q -- '--match-set blacklist src'; then
+# The whole ruleset is read before it is searched: in a pipeline rg -q
+# stops at the first match, a longer iptables-save then dies of SIGPIPE,
+# pipefail makes the test fail and the rule would be added again each run.
+if ! rg -q -- '--match-set blacklist src' <<< "$(iptables-save)"; then
 	iptables -I INPUT -m set --match-set blacklist src -j DROP
 fi
 
-if ! ip6tables-save | rg -q -- '--match-set blacklist6 src'; then
+if ! rg -q -- '--match-set blacklist6 src' <<< "$(ip6tables-save)"; then
 	ip6tables -I INPUT -m set --match-set blacklist6 src -j DROP
 fi
 
