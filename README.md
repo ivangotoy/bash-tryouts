@@ -1,5 +1,6 @@
-> ⚠️ **Mirror.** Primary repository: [git.digtvbg.com](https://git.digtvbg.com/ivangotoy/bash-tryouts/)
-> Development, issues, and PRs happen there. The GitHub repo is read-only.
+> [!NOTE]
+> 🏡 **Home:** [git.digtvbg.com/ivangotoy/bash-tryouts](https://git.digtvbg.com/ivangotoy/bash-tryouts), where code, issues and releases live.
+> 🪞 **Mirror:** [github.com/ivangotoy/bash-tryouts](https://github.com/ivangotoy/bash-tryouts), read-only, synced automatically.
 
 # bash-tryouts
 
