@@ -1,6 +1,5 @@
-> [!NOTE]
-> 🏡 **Home:** [git.digtvbg.com/ivangotoy/bash-tryouts](https://git.digtvbg.com/ivangotoy/bash-tryouts), where code, issues and releases live.
-> 🪞 **Mirror:** [github.com/ivangotoy/bash-tryouts](https://github.com/ivangotoy/bash-tryouts), read-only, synced automatically.
+> 🏠 **Home:** [git.digtvbg.com/ivangotoy/bash-tryouts](https://git.digtvbg.com/ivangotoy/bash-tryouts)\
+> 🔄 **Mirror:** [github.com/ivangotoy/bash-tryouts](https://github.com/ivangotoy/bash-tryouts) (read-only)
 
 # bash-tryouts
 
